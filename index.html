@@ -1,0 +1,3769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Hora de Aventura — Finn Saltarín</title>
+  <style>
+    :root {
+      --ink: #1a1b26;
+      --cream: #fff9db;
+      --cyan: #22b8cf;
+      --blue: #1c7ed6;
+      --yellow: #ffd43b;
+      --orange: #ff922b;
+      --green: #40c057;
+      --pink: #f06595;
+      --red: #fa5252;
+      --ice: #a5f3fc;
+      --shadow: 0 5px 0 #1a1b26;
+      --shadow-sm: 0 3px 0 #1a1b26;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #30a8ff;
+      font-family: "Trebuchet MS", "Arial Rounded MT Bold", system-ui, -apple-system, sans-serif;
+      color: var(--ink);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #game-root {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      cursor: pointer;
+    }
+
+    /* ===== HUD TOP BAR ===== */
+    #hud-top {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #hud-stats {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      visibility: hidden;
+    }
+
+    .hud-pill {
+      background: rgba(255, 249, 219, 0.94);
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 5px 11px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .hud-pill .lbl {
+      font-size: 11px;
+      text-transform: uppercase;
+      opacity: 0.72;
+      letter-spacing: 0.4px;
+    }
+
+    .hud-pill .val {
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .hud-pill.coins {
+      background: #fff3bf;
+    }
+
+    .hud-pill.kicks {
+      background: #e3fafc;
+    }
+
+    #hud-kicks-pips {
+      display: inline-flex;
+      gap: 4px;
+      margin-left: 2px;
+    }
+
+    .kick-pip {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--orange);
+      border: 2px solid var(--ink);
+      display: inline-block;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .kick-pip.used {
+      background: #ced4da;
+      opacity: 0.45;
+      transform: scale(0.8);
+    }
+
+    #btn-mute {
+      pointer-events: auto;
+      background: var(--cream);
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 7px 13px;
+      font-family: inherit;
+      font-weight: 900;
+      font-size: 14px;
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: transform 0.08s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #btn-mute:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 var(--ink);
+    }
+
+    #btn-mute.muted {
+      background: #ffe3e3;
+    }
+
+    /* ===== BIOME / GOAL PROGRESS BAR ===== */
+    #hud-progress {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(520px, calc(100vw - 28px));
+      background: rgba(255, 249, 219, 0.92);
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      padding: 6px 12px 8px;
+      box-shadow: var(--shadow-sm);
+      pointer-events: none;
+      display: none;
+      z-index: 18;
+    }
+
+    .prog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 5px;
+    }
+
+    .prog-track {
+      position: relative;
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #69db7c 0%, #74c0fc 48%, #a5f3fc 100%);
+      border: 2.5px solid var(--ink);
+      overflow: visible;
+    }
+
+    #hud-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ffd43b, #ff922b);
+    }
+
+    #hud-progress-marker {
+      position: absolute;
+      top: 50%;
+      left: 0%;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid var(--ink);
+      box-shadow: 0 2px 0 rgba(26, 27, 38, 0.45);
+    }
+
+    /* ===== ACTION BANNER ===== */
+    #action-banner {
+      position: absolute;
+      bottom: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 27, 38, 0.88);
+      color: var(--yellow);
+      border: 3px solid var(--yellow);
+      border-radius: 999px;
+      padding: 7px 18px;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      pointer-events: none;
+      display: none;
+      z-index: 19;
+      white-space: nowrap;
+      max-width: calc(100vw - 24px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ===== OVERLAYS (MENU, SUMMARY, VICTORY, SHOP) ===== */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(20, 32, 58, 0.56);
+      padding: 12px;
+      z-index: 40;
+    }
+
+    .overlay.visible {
+      display: flex;
+    }
+
+    .overlay-card {
+      width: min(640px, 100%);
+      max-height: calc(100dvh - 20px);
+      overflow-y: auto;
+      touch-action: pan-y;
+      background: var(--cream);
+      border: 4px solid var(--ink);
+      border-radius: 22px;
+      box-shadow: 0 9px 0 var(--ink);
+      padding: 18px 22px;
+      text-align: center;
+    }
+
+    .badge-title {
+      display: inline-block;
+      background: var(--red);
+      color: #ffffff;
+      border: 3px solid var(--ink);
+      border-radius: 12px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-title {
+      font-size: clamp(24px, 4.2vw, 36px);
+      font-weight: 900;
+      color: var(--yellow);
+      -webkit-text-stroke: 2px var(--ink);
+      text-shadow: 0 4px 0 var(--ink);
+      line-height: 1.08;
+      margin-bottom: 6px;
+    }
+
+    .card-sub {
+      font-size: 14px;
+      font-weight: 700;
+      color: #343a40;
+      margin-bottom: 14px;
+      line-height: 1.35;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .stat-box {
+      background: #ffffff;
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 8px 6px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-box .k {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #495057;
+      margin-bottom: 2px;
+    }
+
+    .stat-box .v {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .controls-hint {
+      background: #e7f5ff;
+      border: 2.5px solid var(--ink);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn {
+      font-family: inherit;
+      font-weight: 900;
+      font-size: 15px;
+      color: var(--ink);
+      background: var(--yellow);
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 10px 18px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 0.08s ease;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 var(--ink);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .btn-green { background: var(--green); color: #ffffff; }
+    .btn-cyan { background: var(--cyan); color: #ffffff; }
+    .btn-pink { background: var(--pink); color: #ffffff; }
+    .btn-orange { background: var(--orange); color: #ffffff; }
+    .btn-white { background: #ffffff; color: var(--ink); }
+
+    /* ===== SHOP GRID ===== */
+    .shop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .shop-balance {
+      background: #fff3bf;
+      border: 3px solid var(--ink);
+      border-radius: 14px;
+      padding: 6px 14px;
+      font-weight: 900;
+      font-size: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .shop-item {
+      background: #ffffff;
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .shop-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .shop-item-name {
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .shop-item-lvl {
+      background: #e7f5ff;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      padding: 1px 7px;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .shop-item-desc {
+      font-size: 12px;
+      color: #495057;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .shop-pips {
+      display: flex;
+      gap: 4px;
+    }
+
+    .shop-pip {
+      flex: 1;
+      height: 8px;
+      border-radius: 999px;
+      background: #e9ecef;
+      border: 2px solid var(--ink);
+    }
+
+    .shop-pip.filled {
+      background: var(--yellow);
+    }
+
+    .shop-buy-btn {
+      width: 100%;
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+
+    /* ===== PORTRAIT LOCK OVERLAY ===== */
+    #portrait-lock {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+      background: linear-gradient(160deg, #1c7ed6 0%, #22b8cf 55%, #40c057 100%);
+      color: #ffffff;
+    }
+
+    #portrait-lock.visible {
+      display: flex;
+    }
+
+    .phone-rotate-icon {
+      width: 68px;
+      height: 110px;
+      border: 5px solid var(--ink);
+      border-radius: 14px;
+      background: var(--cream);
+      position: relative;
+      box-shadow: 0 6px 0 var(--ink);
+      animation: rotatePhone 2s ease-in-out infinite;
+    }
+
+    .phone-rotate-icon::after {
+      content: "";
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--cyan);
+      border: 2px solid var(--ink);
+    }
+
+    @keyframes rotatePhone {
+      0%, 18% { transform: rotate(0deg); }
+      45%, 75% { transform: rotate(-90deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    .portrait-card {
+      background: var(--cream);
+      color: var(--ink);
+      border: 4px solid var(--ink);
+      border-radius: 20px;
+      padding: 18px 20px;
+      max-width: 340px;
+      box-shadow: 0 7px 0 var(--ink);
+    }
+
+    .portrait-card h2 {
+      font-size: 22px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .portrait-card p {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    /* ===== COMPACT MOBILE LANDSCAPE TUNING ===== */
+    @media (max-height: 460px) {
+      #hud-top { top: 6px; left: 8px; right: 8px; }
+      .hud-pill { padding: 3px 8px; font-size: 12px; border-width: 2.5px; }
+      .hud-pill .val { font-size: 13px; }
+      #btn-mute { padding: 5px 10px; font-size: 12px; }
+      #hud-progress { bottom: 6px; padding: 4px 10px 6px; }
+      #action-banner { bottom: 56px; font-size: 12px; padding: 5px 14px; }
+      .overlay-card { padding: 12px 16px; border-radius: 16px; }
+      .card-title { font-size: 22px; }
+      .card-sub { font-size: 12px; margin-bottom: 8px; }
+      .stats-grid { gap: 6px; margin-bottom: 8px; }
+      .stat-box { padding: 5px 4px; }
+      .stat-box .v { font-size: 15px; }
+      .controls-hint { font-size: 11px; padding: 6px 10px; margin-bottom: 8px; }
+      .btn { padding: 7px 13px; font-size: 13px; }
+      .shop-grid { gap: 7px; margin-bottom: 8px; }
+      .shop-item { padding: 7px 9px; gap: 5px; }
+      .shop-item-desc { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-root">
+    <canvas id="game-canvas" aria-label="Hora de Aventura: Finn Saltarín"></canvas>
+
+    <!-- HUD TOP -->
+    <div id="hud-top">
+      <div id="hud-stats">
+        <div class="hud-pill"><span class="lbl">Dist</span><span id="hud-dist" class="val">0 m</span></div>
+        <div class="hud-pill"><span class="lbl">Alt</span><span id="hud-height" class="val">0 m</span></div>
+        <div class="hud-pill"><span class="lbl">Vel</span><span id="hud-speed" class="val">0 km/h</span></div>
+        <div class="hud-pill coins"><span>🪙</span><span id="hud-coins" class="val">0</span></div>
+        <div class="hud-pill kicks">
+          <span class="lbl">Impulsos</span>
+          <span id="hud-kicks-num" class="val">3/3</span>
+          <span id="hud-kicks-pips"></span>
+        </div>
+      </div>
+      <button id="btn-mute" type="button" aria-label="Silenciar o activar audio">
+        <span id="mute-label">🔊 Sonido</span>
+      </button>
+    </div>
+
+    <!-- ACTION BANNER -->
+    <div id="action-banner">Toca o pulsa ESPACIO para fijar el ÁNGULO</div>
+
+    <!-- BIOME / GOAL PROGRESS -->
+    <div id="hud-progress">
+      <div class="prog-header">
+        <span id="hud-biome-name">PRADERA DE OOO</span>
+        <span>👑 1000 m</span>
+      </div>
+      <div class="prog-track">
+        <div id="hud-progress-fill"></div>
+        <div id="hud-progress-marker"></div>
+      </div>
+    </div>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="menu-overlay" class="overlay visible">
+      <div class="overlay-card">
+        <div class="badge-title">Hora de Aventura</div>
+        <h1 class="card-title">FINN SALTARÍN</h1>
+        <p class="card-sub">
+          ¡El Rey Helado secuestró a la Dulce Princesa! Pídele a Jake una mega patada, vuela por la Pradera de Ooo y las Nubes hasta el Reino Helado (1000 m) con ayuda de Marceline, Arcoiris y BMO.
+        </p>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="k">Récord Dist.</div><div id="menu-best-dist" class="v">0 m</div></div>
+          <div class="stat-box"><div class="k">Altura Máx.</div><div id="menu-best-height" class="v">0 m</div></div>
+          <div class="stat-box"><div class="k">Monedas</div><div id="menu-coins" class="v">0</div></div>
+          <div class="stat-box"><div class="k">Rescates</div><div id="menu-rescues" class="v">0</div></div>
+        </div>
+        <div class="controls-hint">
+          <strong>PC:</strong> Clic izquierdo o <b>ESPACIO / ENTER</b> para ángulo, potencia e impulsos aéreos · <b>←/→ o A/D</b> inclinar vuelo · <b>M</b> silenciar.<br />
+          <strong>Móvil (horizontal):</strong> Toca la pantalla para lanzar y activar impulsos en el aire.
+        </div>
+        <div class="btn-row">
+          <button id="btn-play" type="button" class="btn btn-green">¡A VOLAR!</button>
+          <button id="btn-menu-shop" type="button" class="btn btn-cyan">TIENDA DE MEJORAS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROUND SUMMARY OVERLAY -->
+    <div id="summary-overlay" class="overlay">
+      <div class="overlay-card">
+        <div class="badge-title">Resumen de Vuelo</div>
+        <h2 id="summary-title" class="card-title">¡FIN DE LA RONDA!</h2>
+        <p id="summary-sub" class="card-sub">¡Sigue mejorando tus habilidades para llegar al Reino Helado!</p>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="k">Distancia</div><div id="sum-dist" class="v">0 m</div></div>
+          <div class="stat-box"><div class="k">Altura Máx.</div><div id="sum-height" class="v">0 m</div></div>
+          <div class="stat-box"><div class="k">Vel. Máx.</div><div id="sum-speed" class="v">0 km/h</div></div>
+          <div class="stat-box"><div class="k">Ganancia</div><div id="sum-coins" class="v">+0</div></div>
+        </div>
+        <div class="btn-row">
+          <button id="btn-retry" type="button" class="btn btn-green">VOLVER A LANZAR</button>
+          <button id="btn-open-shop" type="button" class="btn btn-orange">TIENDA DE MEJORAS</button>
+          <button id="btn-to-menu" type="button" class="btn btn-white">MENÚ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VICTORY / RESCUE OVERLAY -->
+    <div id="victory-overlay" class="overlay">
+      <div class="overlay-card">
+        <div class="badge-title">¡Misión Cumplida!</div>
+        <h2 class="card-title">¡DULCE PRINCESA RESCATADA!</h2>
+        <p class="card-sub">
+          ¡Algebraico! Rompiste la jaula de hielo en el Reino Helado y salvaste a la Dulce Princesa. ¡Ganaste un bono de +150 monedas!
+        </p>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="k">Distancia</div><div id="vic-dist" class="v">1000 m</div></div>
+          <div class="stat-box"><div class="k">Altura Máx.</div><div id="vic-height" class="v">0 m</div></div>
+          <div class="stat-box"><div class="k">Monedas Tot.</div><div id="vic-coins" class="v">0</div></div>
+          <div class="stat-box"><div class="k">Rescates</div><div id="vic-rescues" class="v">1</div></div>
+        </div>
+        <div class="btn-row">
+          <button id="btn-endless" type="button" class="btn btn-pink">SEGUIR VOLANDO (INFINITO)</button>
+          <button id="btn-vic-shop" type="button" class="btn btn-orange">TIENDA</button>
+          <button id="btn-vic-retry" type="button" class="btn btn-green">NUEVA RONDA</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHOP OVERLAY -->
+    <div id="shop-overlay" class="overlay">
+      <div class="overlay-card">
+        <div class="shop-header">
+          <div>
+            <div class="badge-title" style="margin-bottom:2px;">Tienda de Ooo</div>
+            <h2 class="card-title" style="font-size:26px; margin-bottom:0; text-align:left;">MEJORAS</h2>
+          </div>
+          <div class="shop-balance">🪙 <span id="shop-coin-balance">0</span></div>
+        </div>
+        <div id="shop-grid" class="shop-grid"></div>
+        <div class="btn-row">
+          <button id="btn-shop-play" type="button" class="btn btn-green">¡A VOLAR!</button>
+          <button id="btn-shop-close" type="button" class="btn btn-white">VOLVER</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PORTRAIT ORIENTATION LOCK -->
+    <div id="portrait-lock" role="alert" aria-live="assertive">
+      <div class="phone-rotate-icon" aria-hidden="true"></div>
+      <div class="portrait-card">
+        <h2>Gira tu dispositivo</h2>
+        <p>
+          <strong>Finn Saltarín</strong> se juega en orientación <b>horizontal (apaisado)</b>.
+          Gira la pantalla para continuar tu vuelo sin perder el progreso.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* =========================================================
+         CONSTANTS & MATH HELPERS
+         ========================================================= */
+      const STORAGE_KEY = "adventure_time_finn_saltarin_v1";
+      const GOAL_DISTANCE = 1000;
+
+      function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function lerpColor(rgbA, rgbB, t) {
+        const k = clamp(t, 0, 1);
+        const r = Math.round(lerp(rgbA[0], rgbB[0], k));
+        const g = Math.round(lerp(rgbA[1], rgbB[1], k));
+        const b = Math.round(lerp(rgbA[2], rgbB[2], k));
+        return `rgb(${r},${g},${b})`;
+      }
+
+      function drawRoundRect(ctx, x, y, w, h, r) {
+        const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      /* =========================================================
+         1. STORAGE MANAGER — Safe localStorage Persistence
+         ========================================================= */
+      class StorageManager {
+        constructor(key) {
+          this.key = key;
+          this.memoryFallback = null;
+          this.data = this._defaultData();
+          this.load();
+        }
+
+        _defaultData() {
+          return {
+            coins: 0,
+            bestDistance: 0,
+            bestHeight: 0,
+            rescues: 0,
+            muted: false,
+            upgrades: {
+              kick: 0,
+              airKicks: 0,
+              aero: 0,
+              allies: 0
+            }
+          };
+        }
+
+        load() {
+          const def = this._defaultData();
+          try {
+            const raw = window.localStorage.getItem(this.key);
+            if (!raw) {
+              this.data = def;
+              return;
+            }
+            const parsed = JSON.parse(raw);
+            this.data = {
+              coins: Number.isFinite(parsed.coins) ? Math.max(0, Math.floor(parsed.coins)) : 0,
+              bestDistance: Number.isFinite(parsed.bestDistance) ? Math.max(0, parsed.bestDistance) : 0,
+              bestHeight: Number.isFinite(parsed.bestHeight) ? Math.max(0, parsed.bestHeight) : 0,
+              rescues: Number.isFinite(parsed.rescues) ? Math.max(0, Math.floor(parsed.rescues)) : 0,
+              muted: Boolean(parsed.muted),
+              upgrades: {
+                kick: clamp(parseInt(parsed.upgrades && parsed.upgrades.kick, 10) || 0, 0, 5),
+                airKicks: clamp(parseInt(parsed.upgrades && parsed.upgrades.airKicks, 10) || 0, 0, 5),
+                aero: clamp(parseInt(parsed.upgrades && parsed.upgrades.aero, 10) || 0, 0, 5),
+                allies: clamp(parseInt(parsed.upgrades && parsed.upgrades.allies, 10) || 0, 0, 5)
+              }
+            };
+          } catch (_) {
+            if (this.memoryFallback) {
+              this.data = JSON.parse(JSON.stringify(this.memoryFallback));
+            } else {
+              this.data = def;
+            }
+          }
+        }
+
+        save() {
+          this.memoryFallback = JSON.parse(JSON.stringify(this.data));
+          try {
+            window.localStorage.setItem(this.key, JSON.stringify(this.data));
+          } catch (_) {
+            // Storage restricted (private mode / sandbox): keep in memoryFallback safely
+          }
+        }
+      }
+
+      /* =========================================================
+         2. SHOP MANAGER — 4 Upgrades with Real Physical Impact
+         ========================================================= */
+      class ShopManager {
+        constructor(storage) {
+          this.storage = storage;
+          this.catalog = [
+            {
+              id: "kick",
+              name: "🦵 Patada de Jake",
+              maxLevel: 5,
+              baseCost: 35,
+              costMult: 1.85,
+              desc: (lvl) => `Aumenta la velocidad inicial de lanzamiento (+${Math.round(lvl * 14)}% actual).`
+            },
+            {
+              id: "airKicks",
+              name: "⚡ Impulsos Aéreos",
+              maxLevel: 5,
+              baseCost: 45,
+              costMult: 1.9,
+              desc: (lvl) => `Añade +1 impulso aéreo por nivel (${3 + lvl} disponibles por ronda).`
+            },
+            {
+              id: "aero",
+              name: "🎒 Aerodinámica y Rebote",
+              maxLevel: 5,
+              baseCost: 40,
+              costMult: 1.85,
+              desc: (lvl) => `Reduce la fricción del aire y mejora el rebote elástico (+${lvl * 8}%).`
+            },
+            {
+              id: "allies",
+              name: "🌈 Poder de Aliados",
+              maxLevel: 5,
+              baseCost: 50,
+              costMult: 1.9,
+              desc: (lvl) => `Más frecuencia y empuje de Marceline, Arcoiris y BMO (+${lvl * 12}%).`
+            }
+          ];
+        }
+
+        getLevel(id) {
+          return this.storage.data.upgrades[id] || 0;
+        }
+
+        getCost(item) {
+          const lvl = this.getLevel(item.id);
+          if (lvl >= item.maxLevel) return null;
+          return Math.round((item.baseCost * Math.pow(item.costMult, lvl)) / 5) * 5;
+        }
+
+        buy(id) {
+          const item = this.catalog.find((c) => c.id === id);
+          if (!item) return false;
+          const cost = this.getCost(item);
+          if (cost === null || this.storage.data.coins < cost) return false;
+
+          this.storage.data.coins -= cost;
+          this.storage.data.upgrades[id] = this.getLevel(id) + 1;
+          this.storage.save();
+          return true;
+        }
+
+        getStats() {
+          const kickLvl = this.getLevel("kick");
+          const airLvl = this.getLevel("airKicks");
+          const aeroLvl = this.getLevel("aero");
+          const allyLvl = this.getLevel("allies");
+
+          return {
+            launchSpeed: 33 + kickLvl * 4.8,
+            airKicksMax: 3 + airLvl,
+            airKickVx: 9.2 + airLvl * 1.15,
+            airKickVy: 15.2 + airLvl * 1.25,
+            airDrag: Math.max(0.032, 0.082 - aeroLvl * 0.0095),
+            bounceRestitution: 0.62 + aeroLvl * 0.044,
+            groundKeepVx: 0.79 + aeroLvl * 0.026,
+            groundSlideDrag: Math.max(6.2, 12.2 - aeroLvl * 1.1),
+            allySpawnChance: 0.25 + allyLvl * 0.06,
+            allyBoostScale: 1.0 + allyLvl * 0.11,
+            rainicornDuration: 2.6 + allyLvl * 0.42
+          };
+        }
+      }
+
+      /* =========================================================
+         3. AUDIO MANAGER — Procedural Web Audio API (SFX + BGM)
+         ========================================================= */
+      class AudioManager {
+        constructor(storage) {
+          this.storage = storage;
+          this.muted = Boolean(storage.data.muted);
+          this.ctx = null;
+          this.masterGain = null;
+          this.suspendedByPause = false;
+
+          this.bgmStep = 0;
+          this.bgmTimer = 0;
+          // Cheerful Adventure Time-inspired major pentatonic / ukulele loop (Hz)
+          this.melodyNotes = [
+            523.25, 659.25, 783.99, 659.25, 880.0, 783.99, 659.25, 587.33,
+            523.25, 587.33, 659.25, 783.99, 659.25, 0, 587.33, 0
+          ];
+          this.bassNotes = [
+            261.63, 0, 196.0, 0, 220.0, 0, 196.0, 0,
+            174.61, 0, 196.0, 0, 261.63, 0, 196.0, 0
+          ];
+        }
+
+        unlock() {
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (!AudioCtx) return;
+              this.ctx = new AudioCtx();
+              this.masterGain = this.ctx.createGain();
+              this.masterGain.gain.value = this.muted ? 0 : 0.45;
+              this.masterGain.connect(this.ctx.destination);
+            }
+            if (this.ctx.state === "suspended" && !this.suspendedByPause) {
+              this.ctx.resume().catch(() => {});
+            }
+          } catch (_) {
+            // Audio unavailable
+          }
+        }
+
+        toggleMute() {
+          this.muted = !this.muted;
+          this.storage.data.muted = this.muted;
+          this.storage.save();
+          if (this.masterGain && this.ctx) {
+            this.masterGain.gain.setTargetAtTime(this.muted ? 0 : 0.45, this.ctx.currentTime, 0.02);
+          }
+          return this.muted;
+        }
+
+        setSuspended(paused) {
+          this.suspendedByPause = paused;
+          if (!this.ctx) return;
+          try {
+            if (paused && this.ctx.state === "running") {
+              this.ctx.suspend().catch(() => {});
+            } else if (!paused && this.ctx.state === "suspended") {
+              this.ctx.resume().catch(() => {});
+            }
+          } catch (_) {}
+        }
+
+        _tone(type, freqStart, freqEnd, duration, volume, delay = 0) {
+          if (!this.ctx || !this.masterGain || this.muted || this.suspendedByPause) return;
+          const t0 = this.ctx.currentTime + delay;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(Math.max(30, freqStart), t0);
+          if (freqEnd && freqEnd !== freqStart) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(30, freqEnd), t0 + duration);
+          }
+          gain.gain.setValueAtTime(0.0001, t0);
+          gain.gain.linearRampToValueAtTime(volume, t0 + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(t0);
+          osc.stop(t0 + duration + 0.02);
+        }
+
+        _noiseBurst(duration, volume, filterFreq = 900) {
+          if (!this.ctx || !this.masterGain || this.muted || this.suspendedByPause) return;
+          const sr = this.ctx.sampleRate;
+          const len = Math.max(1, Math.floor(sr * duration));
+          const buf = this.ctx.createBuffer(1, len, sr);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < len; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+          }
+          const src = this.ctx.createBufferSource();
+          src.buffer = buf;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.frequency.value = filterFreq;
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          src.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.masterGain);
+          src.start();
+        }
+
+        updateBGM(dt, activeFlight) {
+          if (!this.ctx || this.muted || this.suspendedByPause || this.ctx.state !== "running") return;
+          const stepDur = activeFlight ? 0.175 : 0.23;
+          this.bgmTimer += dt;
+          if (this.bgmTimer >= stepDur) {
+            this.bgmTimer -= stepDur;
+            const idx = this.bgmStep % this.melodyNotes.length;
+            const mFreq = this.melodyNotes[idx];
+            const bFreq = this.bassNotes[idx];
+            if (mFreq > 0) {
+              this._tone("triangle", mFreq, mFreq * 0.995, stepDur * 0.78, activeFlight ? 0.085 : 0.055);
+            }
+            if (bFreq > 0) {
+              this._tone("sine", bFreq, bFreq, stepDur * 0.9, activeFlight ? 0.095 : 0.06);
+            }
+            this.bgmStep++;
+          }
+        }
+
+        playMeterLock(isPower) {
+          this._tone("square", isPower ? 520 : 400, isPower ? 780 : 540, 0.09, 0.16);
+        }
+
+        playJakeKick(powerNorm) {
+          const boost = 1 + powerNorm * 0.5;
+          this._tone("sawtooth", 140 * boost, 48, 0.24, 0.36);
+          this._tone("triangle", 280 * boost, 680 * boost, 0.16, 0.25, 0.02);
+          this._noiseBurst(0.14, 0.28, 700);
+        }
+
+        playAirKick() {
+          this._tone("triangle", 320, 740, 0.14, 0.26);
+          this._noiseBurst(0.09, 0.2, 1600);
+        }
+
+        playBounce() {
+          this._tone("sine", 150, 320, 0.14, 0.28);
+          this._tone("triangle", 190, 95, 0.12, 0.18, 0.04);
+        }
+
+        playCoin(isStar) {
+          if (isStar) {
+            this._tone("triangle", 880, 1318, 0.12, 0.22);
+            this._tone("sine", 1174, 1760, 0.18, 0.2, 0.06);
+          } else {
+            this._tone("sine", 784, 1046, 0.11, 0.2);
+          }
+        }
+
+        playMarceline() {
+          // Electric axe-bass power chord riff
+          const notes = [146.83, 220, 293.66, 440];
+          notes.forEach((f, i) => {
+            this._tone("sawtooth", f, f * 1.03, 0.28, 0.22, i * 0.045);
+          });
+        }
+
+        playRainicorn() {
+          const notes = [523, 659, 784, 988, 1175, 1568];
+          notes.forEach((f, i) => {
+            this._tone("sine", f, f * 1.02, 0.16, 0.18, i * 0.04);
+          });
+        }
+
+        playBMO() {
+          const notes = [587, 740, 880, 1175];
+          notes.forEach((f, i) => {
+            this._tone("square", f, f, 0.09, 0.14, i * 0.055);
+          });
+        }
+
+        playGunter() {
+          // Penguin "Wenk!" quack
+          this._tone("sawtooth", 560, 380, 0.11, 0.24);
+          this._tone("square", 620, 460, 0.09, 0.16, 0.04);
+        }
+
+        playIceKing() {
+          this._tone("sawtooth", 920, 210, 0.26, 0.26);
+          this._tone("triangle", 1320, 440, 0.2, 0.2, 0.03);
+          this._noiseBurst(0.18, 0.24, 2400);
+        }
+
+        playRescue() {
+          const fanfare = [523.25, 659.25, 783.99, 1046.5, 987.77, 1046.5];
+          const delays = [0, 0.1, 0.2, 0.32, 0.5, 0.62];
+          fanfare.forEach((f, i) => {
+            this._tone("triangle", f, f, i === 5 ? 0.45 : 0.14, 0.26, delays[i]);
+            this._tone("square", f * 0.5, f * 0.5, i === 5 ? 0.4 : 0.12, 0.1, delays[i]);
+          });
+        }
+
+        playShopBuy() {
+          this._tone("triangle", 659, 880, 0.1, 0.22);
+          this._tone("triangle", 880, 1318, 0.16, 0.22, 0.07);
+        }
+      }
+
+      /* =========================================================
+         4. PHYSICS ENGINE — 2D Kinematics, Entities & Collisions
+         ========================================================= */
+      class PhysicsEngine {
+        constructor(shop, audio) {
+          this.shop = shop;
+          this.audio = audio;
+
+          this.gravity = 23.5;
+          this.finnRadius = 1.25;
+          this.maxParticles = 260;
+
+          this.finn = null;
+          this.entities = [];
+          this.particles = [];
+          this.popups = [];
+
+          this.airKicksMax = 3;
+          this.airKicksLeft = 3;
+          this.airKickCooldown = 0;
+
+          this.roundCoins = 0;
+          this.maxHeight = 0;
+          this.maxSpeed = 0;
+          this.nextChunkX = 24;
+
+          this.steerDir = 0;
+          this.hitStop = 0;
+          this.screenShake = 0;
+
+          this.endlessMode = false;
+          this.rescueTriggered = false;
+          this.cageBroken = false;
+          this.rescueTimer = 0;
+
+          this.resetRound();
+        }
+
+        resetRound() {
+          const stats = this.shop.getStats();
+          this.airKicksMax = stats.airKicksMax;
+          this.airKicksLeft = stats.airKicksMax;
+          this.airKickCooldown = 0;
+
+          this.finn = {
+            x: 0.5,
+            y: this.finnRadius,
+            vx: 0,
+            vy: 0,
+            angle: 0,
+            spinVel: 0,
+            animState: "IDLE",
+            stateTimer: 0,
+            rainicornTimer: 0,
+            frozenTimer: 0,
+            trailTimer: 0,
+            squashX: 1,
+            squashY: 1
+          };
+
+          this.entities = [];
+          this.particles = [];
+          this.popups = [];
+          this.roundCoins = 0;
+          this.maxHeight = 0;
+          this.maxSpeed = 0;
+          this.nextChunkX = 24;
+          this.steerDir = 0;
+          this.hitStop = 0;
+          this.screenShake = 0;
+
+          this.endlessMode = false;
+          this.rescueTriggered = false;
+          this.cageBroken = false;
+          this.rescueTimer = 0;
+
+          this.generateAhead(135);
+        }
+
+        launch(angleDeg, powerNorm) {
+          const stats = this.shop.getStats();
+          const rad = (angleDeg * Math.PI) / 180;
+          const speed = stats.launchSpeed * (0.42 + 0.58 * clamp(powerNorm, 0.2, 1.0));
+
+          this.finn.vx = Math.cos(rad) * speed;
+          this.finn.vy = Math.sin(rad) * speed;
+          this.finn.y = Math.max(this.finnRadius + 0.4, this.finn.y);
+          this.finn.animState = "KICK_IMPACT";
+          this.finn.stateTimer = 0.26;
+          this.finn.squashX = 1.38;
+          this.finn.squashY = 0.68;
+
+          this.screenShake = 0.28 + powerNorm * 0.28;
+          this.audio.playJakeKick(powerNorm);
+          this.spawnBurst(this.finn.x - 0.6, this.finn.y, 22, ["#ffd43b", "#ff922b", "#ffffff", "#ff595e"], "star", 10);
+          this.spawnRing(this.finn.x - 0.4, this.finn.y, "#ffd43b", 4.4);
+          if (powerNorm >= 0.88) {
+            this.spawnPopup(this.finn.x + 2, this.finn.y + 3.2, "¡PATADA ALGEBRAICA!", "#ffd43b");
+          }
+        }
+
+        triggerAirKick() {
+          if (this.airKicksLeft <= 0 || this.airKickCooldown > 0) return false;
+          if (this.finn.rainicornTimer > 0) return false;
+
+          const stats = this.shop.getStats();
+          this.airKicksLeft--;
+          this.airKickCooldown = 0.24;
+
+          this.finn.vx = Math.max(this.finn.vx + stats.airKickVx * 0.65, stats.airKickVx * 1.45);
+          this.finn.vy = Math.max(this.finn.vy * 0.35, 0) + stats.airKickVy;
+          this.finn.animState = "AIR_KICK";
+          this.finn.stateTimer = 0.34;
+          this.finn.spinVel = 11;
+          this.finn.squashX = 1.32;
+          this.finn.squashY = 0.72;
+
+          this.screenShake = 0.22;
+          this.audio.playAirKick();
+          this.spawnBurst(this.finn.x - 0.6, this.finn.y - 0.3, 18, ["#22b8cf", "#ffd43b", "#ffffff"], "star", 9);
+          this.spawnRing(this.finn.x, this.finn.y, "#22b8cf", 3.6);
+          this.spawnPopup(this.finn.x, this.finn.y + 2.4, "¡IMPULSO!", "#22b8cf");
+          return true;
+        }
+
+        launchEndlessBoost() {
+          const stats = this.shop.getStats();
+          this.endlessMode = true;
+          this.rescueTriggered = true;
+          this.cageBroken = true;
+
+          this.finn.x = GOAL_DISTANCE + 10;
+          this.finn.y = 12;
+          this.finn.vx = Math.max(36, stats.launchSpeed * 0.92);
+          this.finn.vy = 18;
+          this.finn.animState = "ASCEND";
+          this.finn.stateTimer = 0.45;
+          this.airKicksLeft = Math.max(2, this.airKicksMax);
+
+          this.audio.playJakeKick(1.0);
+          this.spawnBurst(this.finn.x, this.finn.y, 26, ["#ff77b7", "#ffd43b", "#22b8cf"], "heart", 10);
+          this.spawnPopup(this.finn.x, this.finn.y + 3, "¡MODO INFINITO!", "#ff77b7");
+          this.generateAhead(this.finn.x + 140);
+        }
+
+        generateAhead(targetX) {
+          const stats = this.shop.getStats();
+          while (this.nextChunkX < targetX) {
+            const cx = this.nextChunkX;
+
+            // Keep Ice Castle landing zone clear around GOAL_DISTANCE
+            if (Math.abs(cx - GOAL_DISTANCE) < 22) {
+              this.nextChunkX += 26;
+              continue;
+            }
+
+            // 1. Coin / Star Arc
+            const arcBaseY = 6 + Math.random() * 20;
+            const arcCount = 4 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < arcCount; i++) {
+              const t = i / Math.max(1, arcCount - 1);
+              const px = cx + i * 2.5;
+              const py = arcBaseY + Math.sin(t * Math.PI) * 5.2;
+              const isStar = i === Math.floor(arcCount / 2) && Math.random() < 0.42;
+              this.entities.push({
+                type: isStar ? "star" : "coin",
+                x: px,
+                y: py,
+                r: isStar ? 1.45 : 1.05,
+                phase: Math.random() * Math.PI * 2,
+                used: false
+              });
+            }
+
+            // 2. Allies (Marceline, Lady Rainicorn, BMO)
+            if (Math.random() < stats.allySpawnChance) {
+              const roll = Math.random();
+              const ax = cx + 8 + Math.random() * 8;
+              if (roll < 0.38) {
+                const ay = 10 + Math.random() * 17;
+                this.entities.push({
+                  type: "marceline",
+                  x: ax,
+                  y: ay,
+                  baseY: ay,
+                  rx: 1.75,
+                  ry: 2.05,
+                  phase: Math.random() * Math.PI * 2,
+                  used: false,
+                  actionTimer: 0
+                });
+              } else if (roll < 0.72) {
+                const ay = 13 + Math.random() * 18;
+                this.entities.push({
+                  type: "rainicorn",
+                  x: ax,
+                  y: ay,
+                  baseY: ay,
+                  rx: 3.1,
+                  ry: 1.55,
+                  phase: Math.random() * Math.PI * 2,
+                  used: false
+                });
+              } else {
+                const ay = 7 + Math.random() * 15;
+                this.entities.push({
+                  type: "bmo",
+                  x: ax,
+                  y: ay,
+                  baseY: ay,
+                  rx: 1.55,
+                  ry: 1.65,
+                  phase: Math.random() * Math.PI * 2,
+                  used: false,
+                  actionTimer: 0
+                });
+              }
+            }
+
+            // 3. Ground Obstacle: Gunter (penguins!)
+            const gunterChance = cx > 650 ? 0.56 : 0.34;
+            if (Math.random() < gunterChance) {
+              this.entities.push({
+                type: "gunter",
+                x: cx + 5 + Math.random() * 12,
+                y: 1.15,
+                vx: -1.8 - Math.random() * 1.4,
+                vy: 0,
+                rx: 1.15,
+                ry: 1.35,
+                phase: Math.random() * Math.PI * 2,
+                hitTimer: 0,
+                spun: false,
+                spinAngle: 0
+              });
+            }
+
+            // 4. Aerial Obstacle: Ice King (more common approaching Ice Kingdom)
+            const ikChance = cx > 650 ? 0.42 : (cx > 140 ? 0.25 : 0.12);
+            if (Math.random() < ikChance) {
+              const ikY = 12 + Math.random() * 19;
+              this.entities.push({
+                type: "iceking",
+                x: cx + 14 + Math.random() * 6,
+                y: ikY,
+                baseY: ikY,
+                rx: 1.65,
+                ry: 1.95,
+                phase: Math.random() * Math.PI * 2,
+                hitTimer: 0
+              });
+            }
+
+            // 5. High-altitude bonus star for high flyers
+            if (Math.random() < 0.55) {
+              const hy = 34 + Math.random() * 22;
+              this.entities.push({
+                type: "star",
+                x: cx + 8 + Math.random() * 14,
+                y: hy,
+                r: 1.45,
+                phase: Math.random() * Math.PI * 2,
+                used: false
+              });
+            }
+
+            this.nextChunkX += 22 + Math.random() * 10;
+          }
+        }
+
+        update(dt, gameState) {
+          this._updateParticles(dt);
+          this._updatePopups(dt);
+          if (this.screenShake > 0) {
+            this.screenShake = Math.max(0, this.screenShake - dt * 1.8);
+          }
+
+          if (gameState === "RESCUE") {
+            return this._updateRescue(dt);
+          }
+
+          if (gameState !== "FLYING") {
+            return "NONE";
+          }
+
+          if (this.hitStop > 0) {
+            this.hitStop -= dt;
+            return "NONE";
+          }
+
+          const stats = this.shop.getStats();
+          const f = this.finn;
+
+          if (this.airKickCooldown > 0) this.airKickCooldown -= dt;
+          if (f.stateTimer > 0) f.stateTimer -= dt;
+          if (f.frozenTimer > 0) f.frozenTimer -= dt;
+
+          f.squashX = lerp(f.squashX, 1, Math.min(1, dt * 10));
+          f.squashY = lerp(f.squashY, 1, Math.min(1, dt * 10));
+
+          if (f.rainicornTimer > 0) {
+            f.rainicornTimer -= dt;
+            const rideVx = Math.max(f.vx, 34 * stats.allyBoostScale);
+            f.vx = lerp(f.vx, rideVx, Math.min(1, dt * 6));
+            f.vy = Math.sin(f.rainicornTimer * 7) * 2.8;
+            f.x += f.vx * dt;
+            f.y = Math.max(7, f.y + f.vy * dt);
+            f.angle = f.vy * 0.03;
+            f.animState = "RAINICORN_RIDE";
+
+            f.trailTimer += dt;
+            if (f.trailTimer >= 0.024) {
+              f.trailTimer = 0;
+              const colors = ["#ff595e", "#ff924c", "#ffca3a", "#8ac926", "#1982c4", "#9b5de5"];
+              for (let c = 0; c < colors.length; c++) {
+                this._pushParticle({
+                  x: f.x - 1.4,
+                  y: f.y + (2.5 - c) * 0.28,
+                  vx: -3,
+                  vy: 0,
+                  size: 0.44,
+                  color: colors[c],
+                  shape: "circle",
+                  life: 0.45,
+                  maxLife: 0.45,
+                  gravityScale: 0
+                });
+              }
+            }
+
+            if (f.rainicornTimer <= 0) {
+              f.vy = 13.5;
+              f.animState = "ASCEND";
+              f.stateTimer = 0.4;
+              this.spawnBurst(f.x, f.y, 18, ["#ff595e", "#ffca3a", "#8ac926", "#1982c4"], "star", 8);
+            }
+          } else {
+            const dragFactor = Math.exp(-stats.airDrag * dt);
+            f.vx *= dragFactor;
+            f.vy *= Math.exp(-stats.airDrag * 0.35 * dt);
+
+            if (this.steerDir !== 0 && f.y > this.finnRadius + 0.5) {
+              f.vx = Math.max(2, f.vx + this.steerDir * 3.8 * dt);
+              if (this.steerDir < 0) {
+                f.vy -= 4.5 * dt;
+              } else {
+                f.vy += 1.6 * dt;
+              }
+            }
+
+            f.vy -= this.gravity * dt;
+            f.x += f.vx * dt;
+            f.y += f.vy * dt;
+
+            if (f.y <= this.finnRadius) {
+              f.y = this.finnRadius;
+              if (f.vy < -2.6) {
+                const impact = Math.abs(f.vy);
+                f.vy = impact * stats.bounceRestitution;
+                f.vx *= stats.groundKeepVx;
+                f.animState = "BOUNCE";
+                f.stateTimer = 0.28;
+                f.spinVel = clamp(f.vx * 0.28, 2, 10);
+                f.squashX = 1.38;
+                f.squashY = 0.65;
+                this.screenShake = Math.max(this.screenShake, clamp(impact * 0.015, 0.08, 0.3));
+                this.audio.playBounce();
+
+                const dustCols = f.x > 700
+                  ? ["#e0f7ff", "#a5f3fc", "#ffffff"]
+                  : ["#8ce99a", "#ffd43b", "#d8f5a2"];
+                this.spawnBurst(f.x, 0.25, 12, dustCols, "dust", 6);
+              } else {
+                f.vy = 0;
+                f.vx = Math.max(0, f.vx - stats.groundSlideDrag * dt);
+                f.angle = lerp(f.angle, 0, Math.min(1, dt * 12));
+                if (f.vx > 2.2 && Math.random() < 0.35) {
+                  this._pushParticle({
+                    x: f.x - 0.6,
+                    y: 0.2,
+                    vx: -f.vx * 0.2,
+                    vy: 1.5 + Math.random() * 2,
+                    size: 0.32,
+                    color: f.x > 700 ? "#e0f7ff" : "#a9e34b",
+                    shape: "dust",
+                    life: 0.32,
+                    maxLife: 0.32,
+                    gravityScale: 0.4
+                  });
+                }
+              }
+            }
+
+            if (f.stateTimer <= 0) {
+              if (f.frozenTimer > 0) {
+                f.animState = "FROZEN_HIT";
+              } else if (f.y <= this.finnRadius + 0.08 && f.vx <= 0.45) {
+                f.animState = "STOPPED";
+              } else if (f.vy > 4.5) {
+                f.animState = "ASCEND";
+              } else {
+                f.animState = "GLIDE_SPIN";
+              }
+            }
+
+            if (f.animState === "BOUNCE" || f.animState === "AIR_KICK") {
+              f.angle += f.spinVel * dt;
+            } else if (f.animState === "STOPPED") {
+              f.angle = lerp(f.angle, 0, Math.min(1, dt * 10));
+            } else {
+              const targetAngle = clamp(Math.atan2(-f.vy, Math.max(4, f.vx)), -0.95, 0.95);
+              f.angle = lerp(f.angle, targetAngle, Math.min(1, dt * 8));
+            }
+
+            const spd = Math.hypot(f.vx, f.vy);
+            if (spd > 28 && f.y > 2) {
+              f.trailTimer += dt;
+              if (f.trailTimer >= 0.04) {
+                f.trailTimer = 0;
+                this._pushParticle({
+                  x: f.x - 0.8,
+                  y: f.y + (Math.random() - 0.5) * 0.7,
+                  vx: -2,
+                  vy: 0,
+                  size: 0.28,
+                  color: "rgba(255,255,255,0.85)",
+                  shape: "circle",
+                  life: 0.26,
+                  maxLife: 0.26,
+                  gravityScale: 0
+                });
+              }
+            }
+          }
+
+          const speedNow = Math.hypot(f.vx, f.vy);
+          if (f.y > this.maxHeight) this.maxHeight = f.y;
+          if (speedNow > this.maxSpeed) this.maxSpeed = speedNow;
+
+          this.generateAhead(f.x + 115);
+          this._updateEntities(dt, stats);
+
+          if (!this.endlessMode && !this.rescueTriggered && f.x >= GOAL_DISTANCE - 6) {
+            this.rescueTriggered = true;
+            this.cageBroken = false;
+            this.rescueTimer = 0;
+            this.finn.rainicornTimer = 0;
+            this.finn.animState = "ASCEND";
+            return "TRIGGER_RESCUE";
+          }
+
+          if (f.y <= this.finnRadius + 0.06 && f.vx <= 0.45 && Math.abs(f.vy) <= 0.2 && f.rainicornTimer <= 0) {
+            f.vx = 0;
+            f.vy = 0;
+            f.animState = "STOPPED";
+            return "STOPPED";
+          }
+
+          return "NONE";
+        }
+
+        _updateRescue(dt) {
+          this.rescueTimer += dt;
+          const f = this.finn;
+          const cageX = GOAL_DISTANCE;
+          const cageY = 9.5;
+
+          if (!this.cageBroken) {
+            f.x = lerp(f.x, cageX, Math.min(1, dt * 6.5));
+            f.y = lerp(f.y, cageY, Math.min(1, dt * 6.5));
+            f.angle = lerp(f.angle, 0.2, Math.min(1, dt * 8));
+            f.animState = "AIR_KICK";
+
+            if (Math.hypot(f.x - cageX, f.y - cageY) < 1.35 || this.rescueTimer > 0.75) {
+              this.cageBroken = true;
+              this.screenShake = 0.55;
+              this.audio.playRescue();
+              this.spawnBurst(cageX, cageY, 38, ["#a5f3fc", "#ffffff", "#74c0fc", "#ff77b7"], "shard", 13);
+              this.spawnBurst(cageX, cageY, 22, ["#ff77b7", "#ffd43b", "#ff595e"], "heart", 9);
+              this.spawnRing(cageX, cageY, "#ff77b7", 6.5);
+              this.spawnPopup(cageX, cageY + 4.2, "¡DULCE PRINCESA RESCATADA!", "#ff77b7");
+            }
+          } else {
+            f.x = lerp(f.x, GOAL_DISTANCE - 1.9, Math.min(1, dt * 5));
+            f.y = lerp(f.y, 6.2, Math.min(1, dt * 5));
+            f.angle = lerp(f.angle, 0, Math.min(1, dt * 8));
+            f.animState = "RESCUE";
+
+            if (Math.random() < 0.35) {
+              this._pushParticle({
+                x: GOAL_DISTANCE + (Math.random() - 0.5) * 6,
+                y: 7 + Math.random() * 5,
+                vx: (Math.random() - 0.5) * 4,
+                vy: 3 + Math.random() * 4,
+                size: 0.45,
+                color: Math.random() < 0.5 ? "#ff77b7" : "#ffd43b",
+                shape: Math.random() < 0.5 ? "heart" : "star",
+                life: 0.9,
+                maxLife: 0.9,
+                gravityScale: 0.15
+              });
+            }
+
+            if (this.rescueTimer >= 2.2) {
+              return "RESCUE_COMPLETE";
+            }
+          }
+          return "NONE";
+        }
+
+        _updateEntities(dt, stats) {
+          const f = this.finn;
+          const cullX = f.x - 42;
+
+          for (let i = this.entities.length - 1; i >= 0; i--) {
+            const e = this.entities[i];
+            if (e.x < cullX || (e.used && (e.type === "coin" || e.type === "star"))) {
+              this.entities.splice(i, 1);
+              continue;
+            }
+
+            e.phase += dt * 3.2;
+            if (e.hitTimer > 0) e.hitTimer -= dt;
+            if (e.actionTimer > 0) e.actionTimer -= dt;
+
+            if (e.type === "gunter") {
+              if (e.spun) {
+                e.x += e.vx * dt;
+                e.y = Math.max(1.15, e.y + (e.vy || 0) * dt);
+                e.vy = (e.vy || 0) - this.gravity * dt;
+                e.spinAngle += 12 * dt;
+              } else {
+                e.x += e.vx * dt;
+              }
+            } else if (e.type === "marceline" || e.type === "bmo" || e.type === "iceking") {
+              e.y = e.baseY + Math.sin(e.phase) * 1.1;
+            } else if (e.type === "rainicorn") {
+              e.y = e.baseY + Math.sin(e.phase * 0.9) * 1.4;
+              if (!e.used) e.x -= 2.2 * dt;
+            }
+
+            const dx = f.x - e.x;
+            const dy = f.y - e.y;
+
+            if (e.type === "coin" || e.type === "star") {
+              const hitR = this.finnRadius + e.r + (f.rainicornTimer > 0 ? 1.2 : 0.35);
+              if (dx * dx + dy * dy <= hitR * hitR) {
+                e.used = true;
+                const val = e.type === "star" ? 15 : 5;
+                this.roundCoins += val;
+                this.audio.playCoin(e.type === "star");
+                this.spawnBurst(e.x, e.y, e.type === "star" ? 14 : 8, ["#ffd43b", "#fff3bf", "#ff922b"], "star", 6);
+                this.spawnPopup(e.x, e.y + 1.2, `+${val}`, "#ffd43b");
+              }
+            } else if (e.type === "marceline" && !e.used) {
+              if (Math.abs(dx) < e.rx + this.finnRadius && Math.abs(dy) < e.ry + this.finnRadius) {
+                e.used = true;
+                e.actionTimer = 0.75;
+                f.rainicornTimer = 0;
+                f.vx = Math.max(f.vx * 1.2, 27) + 9 * stats.allyBoostScale;
+                f.vy = Math.max(f.vy * 0.4, 0) + 21 * stats.allyBoostScale;
+                f.animState = "ASCEND";
+                f.stateTimer = 0.55;
+                f.squashX = 0.75;
+                f.squashY = 1.35;
+                this.hitStop = 0.04;
+                this.screenShake = 0.38;
+                this.audio.playMarceline();
+                this.spawnBurst(e.x, e.y, 24, ["#e64980", "#ff595e", "#be4bdb", "#ffffff"], "note", 11);
+                this.spawnRing(e.x, e.y, "#e64980", 4.6);
+                this.spawnPopup(e.x, e.y + 2.8, "¡MARCELINE ROCK!", "#ff6b9d");
+              }
+            } else if (e.type === "rainicorn" && !e.used) {
+              if (Math.abs(dx) < e.rx + this.finnRadius && Math.abs(dy) < e.ry + this.finnRadius) {
+                e.used = true;
+                f.rainicornTimer = stats.rainicornDuration;
+                f.vx = Math.max(f.vx, 34 * stats.allyBoostScale);
+                f.vy = 2;
+                f.animState = "RAINICORN_RIDE";
+                this.screenShake = 0.25;
+                this.audio.playRainicorn();
+                this.spawnBurst(e.x, e.y, 24, ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#9b5de5"], "star", 10);
+                this.spawnPopup(e.x, e.y + 3.0, "¡ARCOIRIS TURBO!", "#ffca3a");
+              }
+            } else if (e.type === "bmo" && !e.used) {
+              if (Math.abs(dx) < e.rx + this.finnRadius && Math.abs(dy) < e.ry + this.finnRadius) {
+                e.used = true;
+                e.actionTimer = 0.8;
+                this.roundCoins += 20;
+                this.airKicksLeft = Math.min(this.airKicksMax + 1, this.airKicksLeft + 1);
+                if (f.rainicornTimer <= 0) {
+                  f.vy = Math.max(f.vy, 16) + 5 * stats.allyBoostScale;
+                  f.vx += 6.5 * stats.allyBoostScale;
+                  f.animState = "ASCEND";
+                  f.stateTimer = 0.4;
+                }
+                this.screenShake = 0.2;
+                this.audio.playBMO();
+                this.spawnBurst(e.x, e.y, 20, ["#20c997", "#ffd43b", "#ff77b7", "#ffffff"], "heart", 9);
+                this.spawnPopup(e.x, e.y + 2.5, "BMO: +1 IMPULSO +20🪙", "#20c997");
+              }
+            } else if (e.type === "gunter" && e.hitTimer <= 0) {
+              if (Math.abs(dx) < e.rx + this.finnRadius * 0.85 && Math.abs(dy) < e.ry + this.finnRadius * 0.85) {
+                e.hitTimer = 0.7;
+                e.spun = true;
+                e.vx = Math.max(10, f.vx * 0.65);
+                e.vy = 11;
+                if (f.rainicornTimer <= 0) {
+                  if (f.vy < 0) {
+                    f.vy = Math.max(Math.abs(f.vy) * 0.88, 16.5);
+                    f.vx *= 0.88;
+                  } else {
+                    f.vy = Math.max(f.vy, 11.5);
+                    f.vx *= 0.78;
+                  }
+                  f.animState = "BOUNCE";
+                  f.stateTimer = 0.3;
+                  f.spinVel = 7.5;
+                  f.squashX = 1.3;
+                  f.squashY = 0.72;
+                }
+                this.screenShake = 0.24;
+                this.audio.playGunter();
+                this.spawnBurst(e.x, e.y + 0.5, 16, ["#ffffff", "#1a1b26", "#ff922b"], "dust", 8);
+                this.spawnPopup(e.x, e.y + 2.4, "¡WENK! REBOTE", "#ff922b");
+              }
+            } else if (e.type === "iceking" && e.hitTimer <= 0) {
+              if (Math.abs(dx) < e.rx + this.finnRadius * 0.82 && Math.abs(dy) < e.ry + this.finnRadius * 0.82) {
+                e.hitTimer = 0.85;
+                if (f.rainicornTimer > 0) {
+                  this.audio.playIceKing();
+                  this.spawnBurst(e.x, e.y, 18, ["#a5f3fc", "#ffffff", "#ffca3a"], "shard", 10);
+                  this.spawnPopup(e.x, e.y + 2.4, "¡ESCUDO ARCOIRIS!", "#a5f3fc");
+                } else {
+                  f.vx = Math.max(3.5, f.vx * 0.52);
+                  f.vy = Math.min(f.vy * 0.3, 3.5) - 4.5;
+                  f.frozenTimer = 0.65;
+                  f.animState = "FROZEN_HIT";
+                  f.stateTimer = 0.45;
+                  f.squashX = 0.76;
+                  f.squashY = 1.24;
+                  this.hitStop = 0.04;
+                  this.screenShake = 0.42;
+                  this.audio.playIceKing();
+                  this.spawnBurst(e.x, e.y, 24, ["#a5f3fc", "#74c0fc", "#ffffff", "#3bc9db"], "shard", 11);
+                  this.spawnRing(e.x, e.y, "#74c0fc", 4.0);
+                  this.spawnPopup(e.x, e.y + 2.6, "¡RAYO HELADO!", "#74c0fc");
+                }
+              }
+            }
+          }
+        }
+
+        _pushParticle(p) {
+          if (this.particles.length >= this.maxParticles) {
+            this.particles.shift();
+          }
+          this.particles.push(p);
+        }
+
+        spawnBurst(x, y, count, colors, shape, speed) {
+          for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const s = (0.3 + Math.random() * 0.85) * speed;
+            this._pushParticle({
+              x,
+              y,
+              vx: Math.cos(a) * s,
+              vy: Math.sin(a) * s + 1.5,
+              size: 0.28 + Math.random() * 0.36,
+              color: colors[i % colors.length],
+              shape,
+              life: 0.35 + Math.random() * 0.45,
+              maxLife: 0.8,
+              gravityScale: shape === "heart" || shape === "note" ? 0.12 : 0.65
+            });
+          }
+        }
+
+        spawnRing(x, y, color, maxRadius) {
+          this._pushParticle({
+            x,
+            y,
+            vx: 0,
+            vy: 0,
+            size: 0.6,
+            maxRadius,
+            color,
+            shape: "ring",
+            life: 0.34,
+            maxLife: 0.34,
+            gravityScale: 0
+          });
+        }
+
+        spawnPopup(x, y, text, color) {
+          if (this.popups.length > 16) this.popups.shift();
+          this.popups.push({
+            x,
+            y,
+            text,
+            color,
+            life: 1.05,
+            maxLife: 1.05
+          });
+        }
+
+        _updateParticles(dt) {
+          for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.life -= dt;
+            if (p.life <= 0) {
+              this.particles.splice(i, 1);
+              continue;
+            }
+            if (p.shape === "ring") {
+              const t = 1 - p.life / p.maxLife;
+              p.size = lerp(0.5, p.maxRadius, t);
+            } else {
+              p.vy -= this.gravity * p.gravityScale * dt;
+              p.x += p.vx * dt;
+              p.y += p.vy * dt;
+            }
+          }
+        }
+
+        _updatePopups(dt) {
+          for (let i = this.popups.length - 1; i >= 0; i--) {
+            const pop = this.popups[i];
+            pop.life -= dt;
+            pop.y += 3.2 * dt;
+            if (pop.life <= 0) this.popups.splice(i, 1);
+          }
+        }
+      }
+
+      /* =========================================================
+         5. RENDERER — Crisp HiDPI Vector Art, Parallax Biomes & Animations
+         ========================================================= */
+      class Renderer {
+        constructor(canvas, physics) {
+          this.canvas = canvas;
+          this.ctx = canvas.getContext("2d");
+          this.physics = physics;
+
+          this.viewW = 960;
+          this.viewH = 540;
+          this.dpr = 1;
+
+          this.camX = 6;
+          this.camY = 8;
+          this.zoom = 1;
+          this.time = 0;
+
+          this.snowflakes = [];
+          for (let i = 0; i < 55; i++) {
+            this.snowflakes.push({
+              x: Math.random(),
+              y: Math.random(),
+              r: 1.5 + Math.random() * 2.5,
+              spd: 0.14 + Math.random() * 0.22
+            });
+          }
+
+          this.resize();
+        }
+
+        resize() {
+          const rect = this.canvas.getBoundingClientRect();
+          this.viewW = Math.max(320, Math.floor(rect.width || window.innerWidth));
+          this.viewH = Math.max(200, Math.floor(rect.height || window.innerHeight));
+          this.dpr = clamp(window.devicePixelRatio || 1, 1, 2.5);
+          this.canvas.width = Math.floor(this.viewW * this.dpr);
+          this.canvas.height = Math.floor(this.viewH * this.dpr);
+          this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        }
+
+        getBaseScale() {
+          return clamp(this.viewH / 26, 11, 23);
+        }
+
+        worldToScreen(wx, wy) {
+          const ppm = this.getBaseScale() * this.zoom;
+          const groundScreenY = this.viewH * 0.82;
+          const sx = (wx - this.camX) * ppm + this.viewW * 0.26;
+          const sy = groundScreenY - (wy - this.camY) * ppm;
+          return { x: sx, y: sy, ppm };
+        }
+
+        updateCamera(dt, gameState) {
+          this.time += dt;
+          const f = this.physics.finn;
+          const lookAhead = gameState === "FLYING" ? clamp(f.vx * 0.22, 2, 12) : 5;
+          const targetCamX = Math.max(2, f.x + lookAhead);
+          const targetCamY = Math.max(0, f.y - 7.5);
+          const targetZoom = gameState === "RESCUE"
+            ? 1.08
+            : clamp(1.04 - Math.max(0, f.y - 12) * 0.011, 0.56, 1.04);
+
+          const smooth = Math.min(1, dt * 6.5);
+          this.camX = lerp(this.camX, targetCamX, smooth);
+          this.camY = lerp(this.camY, targetCamY, smooth);
+          this.zoom = lerp(this.zoom, targetZoom, Math.min(1, dt * 4.5));
+        }
+
+        getBiomeInfo(x, y) {
+          const iceT = clamp((x - 660) / 170, 0, 1);
+          const skyByDist = clamp((x - 290) / 140, 0, 1) * (1 - iceT);
+          const skyByAlt = clamp((y - 24) / 22, 0, 1) * (1 - iceT * 0.65);
+          const cloudT = clamp(Math.max(skyByDist, skyByAlt), 0, 1);
+
+          let name = "PRADERA DE OOO";
+          if (iceT > 0.45) name = "REINO HELADO";
+          else if (cloudT > 0.45) name = "ZONA DE NUBES Y CIELO";
+
+          return { cloudT, iceT, name };
+        }
+
+        render(stateObj) {
+          const ctx = this.ctx;
+          const f = this.physics.finn;
+          const biome = this.getBiomeInfo(f.x, f.y);
+
+          ctx.save();
+          if (this.physics.screenShake > 0.01) {
+            const mag = this.physics.screenShake * 11;
+            ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
+          }
+
+          this._drawSkyAndParallax(ctx, biome);
+          this._drawGround(ctx, biome);
+
+          if (this.camX < 65) {
+            this._drawTreehouseAndPad(ctx);
+          }
+
+          if (Math.abs(this.camX - GOAL_DISTANCE) < 90) {
+            this._drawIceCastleAndPB(ctx);
+          }
+
+          this._drawEntities(ctx);
+
+          if (this.camX < 48) {
+            this._drawJake(ctx, stateObj);
+          }
+
+          if (f.rainicornTimer > 0) {
+            const p = this.worldToScreen(f.x, f.y - 0.55);
+            this._drawRainicornSprite(ctx, p.x, p.y, p.ppm, this.time * 9, true);
+          }
+          this._drawFinn(ctx);
+
+          if (stateObj.state === "AIM_ANGLE" || stateObj.state === "AIM_POWER") {
+            this._drawLaunchMeters(ctx, stateObj);
+          }
+
+          this._drawParticles(ctx);
+          this._drawPopups(ctx);
+
+          if (biome.iceT > 0.15) {
+            this._drawSnowfall(ctx, biome.iceT);
+          }
+
+          ctx.restore();
+          return biome;
+        }
+
+        _drawSkyAndParallax(ctx, biome) {
+          const w = this.viewW;
+          const h = this.viewH;
+
+          let topCol = lerpColor([48, 168, 255], [32, 118, 224], biome.cloudT);
+          let botCol = lerpColor([180, 238, 255], [255, 228, 168], biome.cloudT);
+          if (biome.iceT > 0) {
+            const tTop = [
+              lerp(48, 32, biome.cloudT),
+              lerp(168, 118, biome.cloudT),
+              lerp(255, 224, biome.cloudT)
+            ];
+            const tBot = [
+              lerp(180, 255, biome.cloudT),
+              lerp(238, 228, biome.cloudT),
+              lerp(255, 168, biome.cloudT)
+            ];
+            topCol = lerpColor(tTop, [28, 72, 138], biome.iceT);
+            botCol = lerpColor(tBot, [175, 238, 255], biome.iceT);
+          }
+
+          const grad = ctx.createLinearGradient(0, 0, 0, h);
+          grad.addColorStop(0, topCol);
+          grad.addColorStop(1, botCol);
+          ctx.fillStyle = grad;
+          ctx.fillRect(-16, -16, w + 32, h + 32);
+
+          if (biome.iceT < 0.8) {
+            ctx.save();
+            ctx.globalAlpha = 1 - biome.iceT;
+            const sunX = w * 0.82;
+            const sunY = h * 0.18;
+            ctx.fillStyle = "rgba(255, 236, 130, 0.32)";
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, 58, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffe066";
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, 32, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          if (biome.iceT > 0.2) {
+            ctx.save();
+            ctx.globalAlpha = biome.iceT * 0.35;
+            for (let a = 0; a < 2; a++) {
+              ctx.strokeStyle = a === 0 ? "#63e6be" : "#74c0fc";
+              ctx.lineWidth = 22;
+              ctx.beginPath();
+              for (let x = 0; x <= w; x += 40) {
+                const y = h * (0.16 + a * 0.08) + Math.sin(x * 0.01 + this.time + a * 2) * 18;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
+          const cloudOffset = -(this.camX * 2.2) % 340;
+          const cloudCount = Math.ceil(w / 240) + 3;
+          for (let i = -1; i < cloudCount; i++) {
+            const cx = cloudOffset + i * 240;
+            const cy = h * 0.24 + ((Math.abs(i) * 73) % 90) + Math.min(40, this.camY * 1.4);
+            const isLumpy = biome.cloudT > 0.35 && Math.abs(i) % 3 === 0;
+            this._drawStylizedCloud(ctx, cx, cy, 0.9 + (Math.abs(i) % 2) * 0.28, isLumpy);
+          }
+
+          const groundBase = this.worldToScreen(0, 0).y;
+          if (groundBase < h + 220) {
+            const mScroll = -(this.camX * 4.5) % 260;
+            const mCount = Math.ceil(w / 260) + 3;
+            const mColor = biome.iceT > 0.35
+              ? lerpColor([110, 185, 220], [162, 224, 248], biome.iceT)
+              : "#7cc8a2";
+            ctx.fillStyle = mColor;
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(-40, groundBase + 160);
+            for (let i = -1; i < mCount; i++) {
+              const mx = mScroll + i * 260;
+              const peakH = 115 + ((Math.abs(i) * 47) % 65);
+              if (biome.iceT > 0.35) {
+                ctx.lineTo(mx + 60, groundBase - peakH * 0.65);
+                ctx.lineTo(mx + 125, groundBase - peakH);
+                ctx.lineTo(mx + 185, groundBase - peakH * 0.55);
+                ctx.lineTo(mx + 260, groundBase + 10);
+              } else {
+                ctx.quadraticCurveTo(mx + 130, groundBase - peakH * 1.35, mx + 260, groundBase + 10);
+              }
+            }
+            ctx.lineTo(w + 80, groundBase + 160);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            const hScroll = -(this.camX * 9.2) % 210;
+            const hCount = Math.ceil(w / 210) + 3;
+            ctx.fillStyle = lerpColor([96, 208, 108], [202, 244, 255], biome.iceT);
+            ctx.beginPath();
+            ctx.moveTo(-40, groundBase + 140);
+            for (let i = -1; i < hCount; i++) {
+              const hx = hScroll + i * 210;
+              const hh = 56 + ((Math.abs(i) * 31) % 36);
+              ctx.quadraticCurveTo(hx + 105, groundBase - hh * 1.2, hx + 210, groundBase + 6);
+            }
+            ctx.lineTo(w + 60, groundBase + 140);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+
+        _drawStylizedCloud(ctx, x, y, scale, isLumpy) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(scale, scale);
+          ctx.fillStyle = isLumpy ? "#d0bfff" : "#ffffff";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.arc(-28, 6, 18, Math.PI * 0.5, Math.PI * 1.5);
+          ctx.arc(-8, -8, 22, Math.PI, Math.PI * 2);
+          ctx.arc(20, -4, 19, Math.PI * 1.1, Math.PI * 2);
+          ctx.arc(36, 7, 15, Math.PI * 1.5, Math.PI * 0.5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          if (isLumpy) {
+            ctx.fillStyle = "#ffd43b";
+            ctx.beginPath();
+            ctx.arc(4, -6, 5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        _drawGround(ctx, biome) {
+          const g = this.worldToScreen(0, 0);
+          if (g.y > this.viewH + 40) return;
+
+          const topGrass = lerpColor([72, 199, 88], [220, 248, 255], biome.iceT);
+          const dirtCol = lerpColor([168, 114, 62], [116, 178, 214], biome.iceT);
+
+          ctx.fillStyle = dirtCol;
+          ctx.fillRect(-16, g.y, this.viewW + 32, this.viewH - g.y + 40);
+
+          ctx.fillStyle = topGrass;
+          ctx.fillRect(-16, g.y, this.viewW + 32, 18);
+
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.moveTo(-16, g.y);
+          ctx.lineTo(this.viewW + 16, g.y);
+          ctx.stroke();
+
+          const startM = Math.max(0, Math.floor((this.camX - 35) / 10) * 10);
+          const endM = Math.ceil(this.camX + 90);
+          for (let m = startM; m <= endM; m += 10) {
+            const p = this.worldToScreen(m, 0);
+            if (p.x < -30 || p.x > this.viewW + 30) continue;
+
+            if (m > 0 && m % 50 === 0) {
+              ctx.fillStyle = m >= 700 ? "#a5f3fc" : "#d99b52";
+              ctx.strokeStyle = "#1a1b26";
+              ctx.lineWidth = 2;
+              ctx.fillRect(p.x - 3, p.y - 26, 6, 26);
+              ctx.strokeRect(p.x - 3, p.y - 26, 6, 26);
+              drawRoundRect(ctx, p.x - 24, p.y - 44, 48, 20, 6);
+              ctx.fillStyle = "#fff9db";
+              ctx.fill();
+              ctx.stroke();
+              ctx.fillStyle = "#1a1b26";
+              ctx.font = "900 11px Trebuchet MS, sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText(`${m}m`, p.x, p.y - 30);
+            } else {
+              ctx.strokeStyle = m >= 700 ? "#74c0fc" : "#2b8a3e";
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(p.x - 4, p.y - 8);
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(p.x + 4, p.y - 7);
+              ctx.stroke();
+            }
+          }
+        }
+
+        _drawTreehouseAndPad(ctx) {
+          const base = this.worldToScreen(-9, 0);
+          const s = base.ppm;
+          ctx.save();
+          ctx.translate(base.x, base.y);
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.6;
+
+          ctx.fillStyle = "#9c6644";
+          ctx.beginPath();
+          ctx.moveTo(-2.8 * s, 0);
+          ctx.lineTo(-2.0 * s, -12 * s);
+          ctx.lineTo(2.0 * s, -12 * s);
+          ctx.lineTo(2.8 * s, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#40c057";
+          const puffs = [
+            [-2.8, -11, 2.8], [0, -13.2, 3.6], [2.8, -11.2, 2.7], [-1.5, -14.8, 2.4], [1.8, -14.6, 2.3]
+          ];
+          for (const [px, py, pr] of puffs) {
+            ctx.beginPath();
+            ctx.arc(px * s, py * s, pr * s, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = "#ffe066";
+          drawRoundRect(ctx, -1.1 * s, -10.5 * s, 2.2 * s, 2.2 * s, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        _drawIceCastleAndPB(ctx) {
+          const base = this.worldToScreen(GOAL_DISTANCE, 0);
+          const s = base.ppm;
+          ctx.save();
+          ctx.translate(base.x, base.y);
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.6;
+
+          ctx.fillStyle = "#74c0fc";
+          ctx.beginPath();
+          ctx.moveTo(-5.5 * s, 0);
+          ctx.lineTo(-4.8 * s, -5.8 * s);
+          ctx.lineTo(-3.2 * s, -11 * s);
+          ctx.lineTo(-1.8 * s, -5.8 * s);
+          ctx.lineTo(2.4 * s, -5.8 * s);
+          ctx.lineTo(3.6 * s, -13.5 * s);
+          ctx.lineTo(5.6 * s, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#c5f6fa";
+          drawRoundRect(ctx, -3.5 * s, -6.2 * s, 7 * s, 1.1 * s, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          const pbY = this.physics.cageBroken ? -7.2 * s : -9.2 * s + Math.sin(this.time * 4) * 4;
+          const pbX = this.physics.cageBroken ? 1.4 * s : 0;
+          this._drawPrincessBubblegum(ctx, pbX, pbY, s, this.physics.cageBroken);
+
+          if (!this.physics.cageBroken) {
+            ctx.save();
+            ctx.translate(0, -9.2 * s + Math.sin(this.time * 4) * 4);
+            ctx.fillStyle = "rgba(165, 243, 252, 0.42)";
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = 2.6;
+            drawRoundRect(ctx, -2.1 * s, -2.8 * s, 4.2 * s, 4.6 * s, 10);
+            ctx.fill();
+            ctx.stroke();
+            ctx.strokeStyle = "#3bc9db";
+            ctx.lineWidth = 2.2;
+            for (let b = -1.1; b <= 1.1; b += 1.1) {
+              ctx.beginPath();
+              ctx.moveTo(b * s, -2.6 * s);
+              ctx.lineTo(b * s, 1.6 * s);
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+
+        _drawPrincessBubblegum(ctx, x, y, s, celebrating) {
+          ctx.save();
+          ctx.translate(x, y);
+          const u = s * 0.9;
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.2;
+
+          ctx.fillStyle = "#f06595";
+          ctx.beginPath();
+          ctx.moveTo(-0.9 * u, -1.2 * u);
+          ctx.quadraticCurveTo(-1.4 * u, 0.4 * u, -0.9 * u, 1.4 * u);
+          ctx.lineTo(0.9 * u, 1.4 * u);
+          ctx.quadraticCurveTo(1.4 * u, 0.4 * u, 0.9 * u, -1.2 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#faa2c1";
+          ctx.beginPath();
+          ctx.moveTo(-0.55 * u, -0.3 * u);
+          ctx.lineTo(-1.15 * u, 1.5 * u);
+          ctx.lineTo(1.15 * u, 1.5 * u);
+          ctx.lineTo(0.55 * u, -0.3 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          const wave = Math.sin(this.time * (celebrating ? 12 : 7)) * 0.35;
+          ctx.strokeStyle = "#ffccd5";
+          ctx.lineWidth = Math.max(3, u * 0.24);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-0.5 * u, 0);
+          ctx.lineTo(-1.25 * u, (-0.5 + wave) * u);
+          ctx.moveTo(0.5 * u, 0);
+          ctx.lineTo(1.25 * u, (-0.6 - wave) * u);
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffccd5";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.1;
+          ctx.beginPath();
+          ctx.arc(0, -1.0 * u, 0.72 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#f06595";
+          ctx.beginPath();
+          ctx.arc(0, -1.25 * u, 0.74 * u, Math.PI, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffd43b";
+          ctx.beginPath();
+          ctx.moveTo(-0.48 * u, -1.65 * u);
+          ctx.lineTo(-0.35 * u, -2.25 * u);
+          ctx.lineTo(0, -1.9 * u);
+          ctx.lineTo(0.35 * u, -2.25 * u);
+          ctx.lineTo(0.48 * u, -1.65 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#22b8cf";
+          ctx.beginPath();
+          ctx.arc(0, -1.86 * u, 0.16 * u, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.arc(-0.24 * u, -0.95 * u, 0.09 * u, 0, Math.PI * 2);
+          ctx.arc(0.24 * u, -0.95 * u, 0.09 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          if (celebrating) {
+            ctx.arc(0, -0.78 * u, 0.22 * u, 0.1, Math.PI - 0.1);
+          } else {
+            ctx.arc(0, -0.68 * u, 0.15 * u, Math.PI + 0.2, -0.2);
+          }
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        _drawJake(ctx, stateObj) {
+          const p = this.worldToScreen(-2.6, 0);
+          const s = p.ppm;
+          const kickProg = stateObj.state === "KICK_ANIM" ? stateObj.kickAnimProgress : 0;
+          const windUp = stateObj.state === "AIM_POWER" ? Math.sin(this.time * 10) * 0.25 : 0;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.6;
+          ctx.lineJoin = "round";
+
+          ctx.strokeStyle = "#f59f00";
+          ctx.lineWidth = Math.max(5, s * 0.36);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-0.55 * s, -1.4 * s);
+          ctx.lineTo(-0.75 * s, -0.15 * s);
+          ctx.stroke();
+
+          const stretchX = kickProg > 0 ? lerp(-1.1, 3.1, Math.sin(kickProg * Math.PI)) : (-0.9 - windUp);
+          const stretchY = kickProg > 0 ? lerp(-0.6, -1.55, Math.sin(kickProg * Math.PI)) : -0.7;
+
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = Math.max(8, s * 0.56);
+          ctx.beginPath();
+          ctx.moveTo(0.45 * s, -1.35 * s);
+          ctx.quadraticCurveTo((0.4 + stretchX * 0.4) * s, -0.5 * s, stretchX * s, stretchY * s);
+          ctx.stroke();
+
+          ctx.strokeStyle = "#fcc419";
+          ctx.lineWidth = Math.max(5, s * 0.38);
+          ctx.beginPath();
+          ctx.moveTo(0.45 * s, -1.35 * s);
+          ctx.quadraticCurveTo((0.4 + stretchX * 0.4) * s, -0.5 * s, stretchX * s, stretchY * s);
+          ctx.stroke();
+
+          const footScale = kickProg > 0 ? 1.45 : 0.85;
+          ctx.fillStyle = "#fcc419";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.ellipse(stretchX * s, stretchY * s, 0.72 * s * footScale, 0.46 * s * footScale, -0.25, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#fcc419";
+          drawRoundRect(ctx, -1.25 * s, -3.55 * s, 2.35 * s, 2.35 * s, 0.9 * s);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.ellipse(-1.15 * s, -2.55 * s, 0.36 * s, 0.75 * s, 0.25, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.ellipse(0.95 * s, -2.55 * s, 0.36 * s, 0.72 * s, -0.22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          for (const ex of [-0.42, 0.36]) {
+            ctx.fillStyle = "#1a1b26";
+            ctx.beginPath();
+            ctx.arc(ex * s, -2.75 * s, 0.38 * s, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc((ex + 0.06) * s, -2.82 * s, 0.22 * s, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = "#f59f00";
+          ctx.beginPath();
+          ctx.moveTo(-0.48 * s, -2.3 * s);
+          ctx.quadraticCurveTo(0, -2.55 * s, 0.48 * s, -2.3 * s);
+          ctx.quadraticCurveTo(0.62 * s, -1.9 * s, 0.25 * s, -1.95 * s);
+          ctx.quadraticCurveTo(0, -2.15 * s, -0.25 * s, -1.95 * s);
+          ctx.quadraticCurveTo(-0.62 * s, -1.9 * s, -0.48 * s, -2.3 * s);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.ellipse(0, -2.32 * s, 0.22 * s, 0.14 * s, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        _drawFinn(ctx) {
+          const f = this.physics.finn;
+          const p = this.worldToScreen(f.x, f.y);
+          const s = p.ppm * 0.92;
+          const st = f.animState;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(f.angle);
+          ctx.scale(f.squashX, f.squashY);
+
+          const t = this.time;
+          const noodleSwing = Math.sin(t * 16) * 0.35;
+
+          ctx.fillStyle = "#40c057";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.4;
+          drawRoundRect(ctx, -1.05 * s, -0.58 * s, 0.72 * s, 1.15 * s, 0.25 * s);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#8ce99a";
+          drawRoundRect(ctx, -1.02 * s, -0.56 * s, 0.66 * s, 0.48 * s, 0.2 * s);
+          ctx.fill();
+          ctx.stroke();
+
+          let leg1X = -0.25, leg1Y = 1.25;
+          let leg2X = 0.28, leg2Y = 1.25;
+          if (st === "AIR_KICK") {
+            leg1X = -0.35; leg1Y = 0.95;
+            leg2X = 1.25; leg2Y = 0.45;
+          } else if (st === "ASCEND") {
+            leg1X = -0.45; leg1Y = 1.15 + noodleSwing * 0.4;
+            leg2X = 0.25; leg2Y = 1.18 - noodleSwing * 0.4;
+          } else if (st === "GLIDE_SPIN") {
+            leg1X = -0.65; leg1Y = 0.95 + noodleSwing * 0.5;
+            leg2X = -0.15; leg2Y = 1.12 - noodleSwing * 0.5;
+          } else if (st === "BOUNCE" || st === "KICK_IMPACT") {
+            leg1X = -0.85; leg1Y = 0.95;
+            leg2X = 0.85; leg2Y = 0.85;
+          } else if (st === "RAINICORN_RIDE") {
+            leg1X = -0.2; leg1Y = 0.92;
+            leg2X = 0.35; leg2Y = 0.92;
+          } else if (st === "STOPPED") {
+            leg1X = -0.65; leg1Y = 1.05;
+            leg2X = 0.7; leg2Y = 1.05;
+          }
+
+          const drawLeg = (ox, tx, ty) => {
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = Math.max(5.5, s * 0.34);
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(ox * s, 0.55 * s);
+            ctx.lineTo(tx * s, ty * s);
+            ctx.stroke();
+            ctx.strokeStyle = "#ffdbac";
+            ctx.lineWidth = Math.max(3, s * 0.2);
+            ctx.beginPath();
+            ctx.moveTo(ox * s, 0.55 * s);
+            ctx.lineTo(tx * s, ty * s);
+            ctx.stroke();
+            ctx.fillStyle = "#1a1b26";
+            ctx.beginPath();
+            ctx.ellipse((tx + 0.14) * s, ty * s, 0.26 * s, 0.17 * s, 0, 0, Math.PI * 2);
+            ctx.fill();
+          };
+          drawLeg(-0.22, leg1X, leg1Y);
+          drawLeg(0.22, leg2X, leg2Y);
+
+          ctx.fillStyle = "#1c7ed6";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.4;
+          drawRoundRect(ctx, -0.58 * s, 0.22 * s, 1.16 * s, 0.45 * s, 0.16 * s);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#22b8cf";
+          drawRoundRect(ctx, -0.62 * s, -0.62 * s, 1.24 * s, 0.92 * s, 0.24 * s);
+          ctx.fill();
+          ctx.stroke();
+
+          let a1X = -0.95, a1Y = 0.15;
+          let a2X = 0.95, a2Y = 0.15;
+          if (st === "ASCEND" || st === "RESCUE" || st === "RAINICORN_RIDE") {
+            a1X = -0.95; a1Y = -0.95 + noodleSwing * 0.3;
+            a2X = 1.05; a2Y = -1.05 - noodleSwing * 0.3;
+          } else if (st === "AIR_KICK") {
+            a1X = -1.05; a1Y = -0.4;
+            a2X = 0.95; a2Y = -0.65;
+          } else if (st === "GLIDE_SPIN") {
+            a1X = -1.1; a1Y = -0.25 + noodleSwing * 0.45;
+            a2X = 1.0; a2Y = -0.15 - noodleSwing * 0.45;
+          } else if (st === "BOUNCE" || st === "KICK_IMPACT" || st === "FROZEN_HIT") {
+            a1X = -1.15; a1Y = -0.75;
+            a2X = 1.15; a2Y = -0.75;
+          }
+
+          const drawArm = (ox, tx, ty) => {
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = Math.max(5.5, s * 0.32);
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(ox * s, -0.32 * s);
+            ctx.lineTo(tx * s, ty * s);
+            ctx.stroke();
+            ctx.strokeStyle = "#ffdbac";
+            ctx.lineWidth = Math.max(3, s * 0.19);
+            ctx.beginPath();
+            ctx.moveTo(ox * s, -0.32 * s);
+            ctx.lineTo(tx * s, ty * s);
+            ctx.stroke();
+          };
+          drawArm(-0.55, a1X, a1Y);
+          drawArm(0.55, a2X, a2Y);
+
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(-0.46 * s, -1.52 * s, 0.26 * s, 0, Math.PI * 2);
+          ctx.arc(0.46 * s, -1.52 * s, 0.26 * s, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          drawRoundRect(ctx, -0.74 * s, -1.58 * s, 1.48 * s, 1.14 * s, 0.52 * s);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = st === "FROZEN_HIT" ? "#a5f3fc" : "#ffdbac";
+          ctx.beginPath();
+          ctx.ellipse(0.06 * s, -1.0 * s, 0.5 * s, 0.37 * s, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1a1b26";
+          if (st === "BOUNCE" || st === "KICK_IMPACT") {
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(-0.14 * s, -1.06 * s, 0.08 * s, 0, Math.PI * 2);
+            ctx.arc(0.26 * s, -1.06 * s, 0.08 * s, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#e03131";
+            ctx.beginPath();
+            ctx.ellipse(0.06 * s, -0.84 * s, 0.14 * s, 0.13 * s, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          } else if (st === "FROZEN_HIT") {
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-0.22 * s, -1.12 * s);
+            ctx.lineTo(-0.06 * s, -1.04 * s);
+            ctx.lineTo(-0.22 * s, -0.96 * s);
+            ctx.moveTo(0.32 * s, -1.12 * s);
+            ctx.lineTo(0.16 * s, -1.04 * s);
+            ctx.lineTo(0.32 * s, -0.96 * s);
+            ctx.moveTo(-0.1 * s, -0.84 * s);
+            ctx.lineTo(0.22 * s, -0.84 * s);
+            ctx.stroke();
+          } else if (st === "ASCEND" || st === "RESCUE" || st === "RAINICORN_RIDE" || st === "AIR_KICK") {
+            ctx.beginPath();
+            ctx.arc(-0.14 * s, -1.07 * s, 0.07 * s, 0, Math.PI * 2);
+            ctx.arc(0.26 * s, -1.07 * s, 0.07 * s, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.arc(0.06 * s, -0.92 * s, 0.18 * s, 0, Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.arc(-0.14 * s, -1.05 * s, 0.07 * s, 0, Math.PI * 2);
+            ctx.arc(0.26 * s, -1.05 * s, 0.07 * s, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#1a1b26";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0.06 * s, -0.92 * s, 0.15 * s, 0.15, Math.PI - 0.15);
+            ctx.stroke();
+          }
+
+          if (st === "STOPPED") {
+            for (let k = 0; k < 3; k++) {
+              const ang = t * 5 + (k * Math.PI * 2) / 3;
+              const sx = Math.cos(ang) * 0.85 * s;
+              const sy = -1.95 * s + Math.sin(ang) * 0.22 * s;
+              ctx.fillStyle = "#ffd43b";
+              ctx.beginPath();
+              ctx.arc(sx, sy, 0.15 * s, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+
+          ctx.restore();
+        }
+
+        _drawEntities(ctx) {
+          for (const e of this.physics.entities) {
+            const p = this.worldToScreen(e.x, e.y);
+            if (p.x < -120 || p.x > this.viewW + 120 || p.y < -120 || p.y > this.viewH + 120) continue;
+
+            if (e.type === "coin" || e.type === "star") {
+              this._drawCollectible(ctx, p.x, p.y, p.ppm, e);
+            } else if (e.type === "marceline") {
+              this._drawMarceline(ctx, p.x, p.y, p.ppm, e);
+            } else if (e.type === "rainicorn") {
+              if (!e.used) this._drawRainicornSprite(ctx, p.x, p.y, p.ppm, e.phase, false);
+            } else if (e.type === "bmo") {
+              this._drawBMO(ctx, p.x, p.y, p.ppm, e);
+            } else if (e.type === "gunter") {
+              this._drawGunter(ctx, p.x, p.y, p.ppm, e);
+            } else if (e.type === "iceking") {
+              this._drawIceKing(ctx, p.x, p.y, p.ppm, e);
+            }
+          }
+        }
+
+        _drawCollectible(ctx, x, y, s, e) {
+          ctx.save();
+          ctx.translate(x, y + Math.sin(e.phase) * 4);
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.2;
+
+          if (e.type === "star") {
+            ctx.rotate(Math.sin(e.phase * 0.7) * 0.25);
+            ctx.fillStyle = "#ffe066";
+            const outer = s * 0.95;
+            const inner = s * 0.44;
+            ctx.beginPath();
+            for (let i = 0; i < 10; i++) {
+              const r = i % 2 === 0 ? outer : inner;
+              const a = (i * Math.PI) / 5 - Math.PI / 2;
+              if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+              else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(-outer * 0.18, -outer * 0.15, outer * 0.16, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            const stretch = 0.65 + 0.35 * Math.abs(Math.cos(e.phase));
+            ctx.fillStyle = "#ffd43b";
+            ctx.beginPath();
+            ctx.ellipse(0, 0, s * 0.68 * stretch, s * 0.68, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#fab005";
+            ctx.beginPath();
+            ctx.ellipse(0, 0, s * 0.34 * stretch, s * 0.38, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        _drawMarceline(ctx, x, y, s, e) {
+          ctx.save();
+          ctx.translate(x, y);
+          const u = s * 1.0;
+          const swing = e.actionTimer > 0 ? Math.sin(e.actionTimer * 16) * 0.85 : Math.sin(e.phase) * 0.12;
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.3;
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.moveTo(-0.75 * u, -1.5 * u);
+          ctx.quadraticCurveTo(-1.7 * u, 0.2 * u, -1.2 * u, 1.8 * u);
+          ctx.lineTo(0.85 * u, 1.5 * u);
+          ctx.quadraticCurveTo(1.25 * u, -0.2 * u, 0.72 * u, -1.5 * u);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = "#364fc7";
+          ctx.lineWidth = Math.max(4, u * 0.25);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-0.22 * u, 0.55 * u);
+          ctx.lineTo(-0.4 * u, 1.55 * u);
+          ctx.moveTo(0.22 * u, 0.55 * u);
+          ctx.lineTo(0.42 * u, 1.48 * u);
+          ctx.stroke();
+          ctx.fillStyle = "#e03131";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(-0.45 * u, 1.62 * u, 0.28 * u, 0.16 * u, 0, 0, Math.PI * 2);
+          ctx.ellipse(0.48 * u, 1.55 * u, 0.28 * u, 0.16 * u, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#868e96";
+          drawRoundRect(ctx, -0.45 * u, -0.45 * u, 0.9 * u, 1.05 * u, 0.22 * u);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#ced4da";
+          ctx.beginPath();
+          ctx.arc(0, -1.02 * u, 0.58 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.arc(-0.18 * u, -1.06 * u, 0.08 * u, 0, Math.PI * 2);
+          ctx.arc(0.22 * u, -1.06 * u, 0.08 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0.04 * u, -0.84 * u, 0.18 * u, 0.1, Math.PI - 0.1);
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.moveTo(-0.08 * u, -0.82 * u);
+          ctx.lineTo(-0.02 * u, -0.68 * u);
+          ctx.lineTo(0.04 * u, -0.82 * u);
+          ctx.fill();
+
+          ctx.save();
+          ctx.rotate(-0.55 + swing);
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.2;
+          ctx.fillStyle = "#495057";
+          ctx.fillRect(-0.12 * u, -1.65 * u, 0.24 * u, 2.35 * u);
+          ctx.strokeRect(-0.12 * u, -1.65 * u, 0.24 * u, 2.35 * u);
+          ctx.fillStyle = "#e03131";
+          ctx.beginPath();
+          ctx.moveTo(-0.95 * u, 0.3 * u);
+          ctx.quadraticCurveTo(0, 0.55 * u, 0.95 * u, 0.3 * u);
+          ctx.quadraticCurveTo(1.15 * u, 0.95 * u, 0.8 * u, 1.38 * u);
+          ctx.quadraticCurveTo(0, 1.05 * u, -0.8 * u, 1.38 * u);
+          ctx.quadraticCurveTo(-1.15 * u, 0.95 * u, -0.95 * u, 0.3 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+
+          ctx.restore();
+        }
+
+        _drawRainicornSprite(ctx, x, y, s, phase, isRiding) {
+          ctx.save();
+          ctx.translate(x, y);
+          const u = s * 0.95;
+          const colors = ["#ff595e", "#ff924c", "#ffca3a", "#8ac926", "#1982c4"];
+          const segs = 12;
+          const len = isRiding ? 4.4 : 4.8;
+
+          for (let c = 0; c < colors.length; c++) {
+            ctx.strokeStyle = colors[c];
+            ctx.lineWidth = Math.max(3, u * 0.26);
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            for (let i = 0; i <= segs; i++) {
+              const t = i / segs;
+              const bx = (0.45 - t) * len * u;
+              const by = Math.sin(phase + t * 5.2) * 0.55 * u + (c - 2) * 0.22 * u;
+              if (i === 0) ctx.moveTo(bx, by);
+              else ctx.lineTo(bx, by);
+            }
+            ctx.stroke();
+          }
+
+          const hx = 0.48 * len * u;
+          const hy = Math.sin(phase) * 0.55 * u - 0.15 * u;
+          ctx.translate(hx, hy);
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.2;
+
+          ctx.fillStyle = "#ffe066";
+          ctx.beginPath();
+          ctx.arc(-0.48 * u, -0.25 * u, 0.45 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#fff9db";
+          ctx.beginPath();
+          ctx.ellipse(0.1 * u, 0, 0.72 * u, 0.48 * u, -0.1, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffd43b";
+          ctx.beginPath();
+          ctx.moveTo(0.22 * u, -0.4 * u);
+          ctx.lineTo(0.85 * u, -1.05 * u);
+          ctx.lineTo(0.48 * u, -0.22 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.arc(0.26 * u, -0.08 * u, 0.09 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0.45 * u, 0.12 * u, 0.15 * u, 0.2, Math.PI - 0.4);
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        _drawBMO(ctx, x, y, s, e) {
+          ctx.save();
+          ctx.translate(x, y);
+          const u = s * 0.92;
+          ctx.rotate(Math.sin(e.phase) * 0.12);
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.3;
+
+          const propW = Math.max(0.25, Math.abs(Math.cos(this.time * 22))) * 1.1 * u;
+          ctx.beginPath();
+          ctx.moveTo(0, -1.2 * u);
+          ctx.lineTo(0, -1.65 * u);
+          ctx.stroke();
+          ctx.fillStyle = "#ff595e";
+          ctx.beginPath();
+          ctx.ellipse(0, -1.68 * u, propW, 0.16 * u, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = Math.max(4, u * 0.22);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-0.85 * u, 0.1 * u);
+          ctx.lineTo(-1.35 * u, -0.25 * u);
+          ctx.moveTo(0.85 * u, 0.1 * u);
+          ctx.lineTo(1.35 * u, -0.25 * u);
+          ctx.moveTo(-0.35 * u, 1.1 * u);
+          ctx.lineTo(-0.45 * u, 1.65 * u);
+          ctx.moveTo(0.35 * u, 1.1 * u);
+          ctx.lineTo(0.45 * u, 1.65 * u);
+          ctx.stroke();
+
+          ctx.fillStyle = "#38b2ac";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.4;
+          drawRoundRect(ctx, -0.92 * u, -1.2 * u, 1.84 * u, 2.32 * u, 0.24 * u);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#c3fae8";
+          drawRoundRect(ctx, -0.72 * u, -0.98 * u, 1.44 * u, 1.02 * u, 0.15 * u);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.arc(-0.28 * u, -0.55 * u, 0.08 * u, 0, Math.PI * 2);
+          ctx.arc(0.28 * u, -0.55 * u, 0.08 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(0, -0.42 * u, 0.2 * u, 0.1, Math.PI - 0.1);
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffd43b";
+          ctx.fillRect(-0.56 * u, 0.34 * u, 0.42 * u, 0.16 * u);
+          ctx.fillRect(-0.43 * u, 0.21 * u, 0.16 * u, 0.42 * u);
+
+          ctx.fillStyle = "#fa5252";
+          ctx.beginPath();
+          ctx.arc(0.42 * u, 0.54 * u, 0.18 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#51cf66";
+          ctx.beginPath();
+          ctx.arc(0.12 * u, 0.72 * u, 0.13 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        _drawGunter(ctx, x, y, s, e) {
+          ctx.save();
+          ctx.translate(x, y);
+          const u = s * 0.92;
+          if (e.spun) ctx.rotate(e.spinAngle);
+          else ctx.rotate(Math.sin(e.phase * 2.2) * 0.1);
+
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.3;
+
+          ctx.fillStyle = "#ff922b";
+          ctx.beginPath();
+          ctx.ellipse(-0.34 * u, 1.05 * u, 0.32 * u, 0.16 * u, 0, 0, Math.PI * 2);
+          ctx.ellipse(0.34 * u, 1.05 * u, 0.32 * u, 0.16 * u, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.ellipse(0, 0.05 * u, 0.85 * u, 1.12 * u, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          const flap = Math.sin(e.phase * 3.5) * 0.35;
+          ctx.beginPath();
+          ctx.ellipse(-0.85 * u, 0.1 * u, 0.24 * u, 0.56 * u, 0.3 + flap, 0, Math.PI * 2);
+          ctx.ellipse(0.85 * u, 0.1 * u, 0.24 * u, 0.56 * u, -0.3 - flap, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.ellipse(0, 0.28 * u, 0.58 * u, 0.78 * u, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(-0.24 * u, -0.45 * u, 0.24 * u, 0, Math.PI * 2);
+          ctx.arc(0.24 * u, -0.45 * u, 0.24 * u, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.arc(-0.22 * u, -0.46 * u, 0.09 * u, 0, Math.PI * 2);
+          ctx.arc(0.22 * u, -0.46 * u, 0.09 * u, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#ff922b";
+          ctx.beginPath();
+          ctx.moveTo(-0.24 * u, -0.34 * u);
+          ctx.lineTo(0.24 * u, -0.34 * u);
+          ctx.lineTo(0, -0.04 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        _drawIceKing(ctx, x, y, s, e) {
+          ctx.save();
+          ctx.translate(x, y);
+          const u = s * 1.0;
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.4;
+
+          ctx.fillStyle = "#1971c2";
+          ctx.beginPath();
+          ctx.moveTo(-0.75 * u, -0.6 * u);
+          ctx.lineTo(-1.35 * u, 1.65 * u);
+          ctx.lineTo(1.35 * u, 1.65 * u);
+          ctx.lineTo(0.75 * u, -0.6 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          const zap = Math.sin(this.time * 18) * 0.22;
+          ctx.strokeStyle = "#74c0fc";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(-1.35 * u, (-0.2 + zap) * u, 0.35 * u, 0, Math.PI * 2);
+          ctx.arc(1.35 * u, (-0.2 - zap) * u, 0.35 * u, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = "#f8f9fa";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.moveTo(-0.85 * u, -1.0 * u);
+          ctx.quadraticCurveTo(-1.25 * u, 0.35 * u, -0.65 * u, 1.15 * u);
+          ctx.lineTo(-0.22 * u, 0.85 * u);
+          ctx.lineTo(0, 1.35 * u);
+          ctx.lineTo(0.28 * u, 0.85 * u);
+          ctx.lineTo(0.7 * u, 1.15 * u);
+          ctx.quadraticCurveTo(1.25 * u, 0.35 * u, 0.85 * u, -1.0 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#a5d8ff";
+          ctx.beginPath();
+          ctx.ellipse(0, -0.95 * u, 0.62 * u, 0.45 * u, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#74c0fc";
+          ctx.beginPath();
+          ctx.moveTo(-0.08 * u, -0.98 * u);
+          ctx.lineTo(-0.68 * u, -0.78 * u);
+          ctx.lineTo(-0.05 * u, -0.72 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#1a1b26";
+          ctx.beginPath();
+          ctx.arc(-0.24 * u, -1.04 * u, 0.08 * u, 0, Math.PI * 2);
+          ctx.arc(0.2 * u, -1.04 * u, 0.08 * u, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.lineWidth = 2.6;
+          ctx.beginPath();
+          ctx.moveTo(-0.42 * u, -1.2 * u);
+          ctx.lineTo(-0.06 * u, -1.1 * u);
+          ctx.moveTo(0.38 * u, -1.2 * u);
+          ctx.lineTo(0.04 * u, -1.1 * u);
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffd43b";
+          ctx.lineWidth = 2.3;
+          ctx.beginPath();
+          ctx.moveTo(-0.68 * u, -1.32 * u);
+          ctx.lineTo(-0.62 * u, -2.18 * u);
+          ctx.lineTo(-0.24 * u, -1.78 * u);
+          ctx.lineTo(0, -2.32 * u);
+          ctx.lineTo(0.24 * u, -1.78 * u);
+          ctx.lineTo(0.62 * u, -2.18 * u);
+          ctx.lineTo(0.68 * u, -1.32 * u);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#fa5252";
+          for (const gx of [-0.42, 0, 0.42]) {
+            ctx.beginPath();
+            ctx.arc(gx * u, -1.56 * u, 0.13 * u, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.restore();
+        }
+
+        _drawLaunchMeters(ctx, stateObj) {
+          const origin = this.worldToScreen(0.4, 1.4);
+          const s = origin.ppm;
+          const arcR = clamp(s * 5.2, 62, 118);
+
+          ctx.save();
+          ctx.translate(origin.x, origin.y);
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, arcR, -Math.PI * 0.45, -Math.PI * 0.08);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = "#51cf66";
+          ctx.lineWidth = 7;
+          ctx.beginPath();
+          ctx.arc(0, 0, arcR - 5, (-52 * Math.PI) / 180, (-38 * Math.PI) / 180);
+          ctx.stroke();
+
+          const rad = (-stateObj.angleDeg * Math.PI) / 180;
+          const arrowLen = stateObj.state === "AIM_POWER"
+            ? arcR * (0.45 + 0.65 * stateObj.powerNorm)
+            : arcR * 1.05;
+
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 9;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(rad) * arrowLen, Math.sin(rad) * arrowLen);
+          ctx.stroke();
+
+          ctx.strokeStyle = stateObj.state === "AIM_POWER" ? "#ff595e" : "#ffd43b";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(rad) * arrowLen, Math.sin(rad) * arrowLen);
+          ctx.stroke();
+
+          const hx = Math.cos(rad) * arrowLen;
+          const hy = Math.sin(rad) * arrowLen;
+          ctx.fillStyle = stateObj.state === "AIM_POWER" ? "#ff595e" : "#ffd43b";
+          ctx.strokeStyle = "#1a1b26";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(hx, hy, 9, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#fff9db";
+          drawRoundRect(ctx, arcR + 12, -arcR * 0.65, 68, 28, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#1a1b26";
+          ctx.font = "900 14px Trebuchet MS, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`${Math.round(stateObj.angleDeg)}°`, arcR + 46, -arcR * 0.65 + 19);
+
+          if (stateObj.state === "AIM_POWER") {
+            const barW = clamp(this.viewW * 0.24, 145, 230);
+            const barH = 24;
+            const bx = -barW * 0.25;
+            const by = -arcR - 46;
+
+            ctx.fillStyle = "#1a1b26";
+            drawRoundRect(ctx, bx - 4, by - 4, barW + 8, barH + 8, 12);
+            ctx.fill();
+
+            const pGrad = ctx.createLinearGradient(bx, 0, bx + barW, 0);
+            pGrad.addColorStop(0, "#ffd43b");
+            pGrad.addColorStop(0.65, "#ff922b");
+            pGrad.addColorStop(1, "#ff4d4f");
+            ctx.fillStyle = "#2b2d42";
+            drawRoundRect(ctx, bx, by, barW, barH, 9);
+            ctx.fill();
+
+            ctx.fillStyle = pGrad;
+            drawRoundRect(ctx, bx, by, Math.max(8, barW * stateObj.powerNorm), barH, 9);
+            ctx.fill();
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(bx + barW * 0.88, by, 3, barH);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "900 13px Trebuchet MS, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(`POTENCIA: ${Math.round(stateObj.powerNorm * 100)}%`, bx + barW * 0.5, by + 17);
+          }
+
+          ctx.restore();
+        }
+
+        _drawParticles(ctx) {
+          for (const pt of this.physics.particles) {
+            const p = this.worldToScreen(pt.x, pt.y);
+            if (p.x < -60 || p.x > this.viewW + 60 || p.y < -60 || p.y > this.viewH + 60) continue;
+
+            const alpha = clamp(pt.life / pt.maxLife, 0, 1);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.translate(p.x, p.y);
+            const r = pt.size * p.ppm;
+
+            if (pt.shape === "ring") {
+              ctx.strokeStyle = pt.color;
+              ctx.lineWidth = Math.max(2, 5 * alpha);
+              ctx.beginPath();
+              ctx.arc(0, 0, r, 0, Math.PI * 2);
+              ctx.stroke();
+            } else if (pt.shape === "star") {
+              ctx.fillStyle = pt.color;
+              ctx.beginPath();
+              for (let i = 0; i < 8; i++) {
+                const rad = i % 2 === 0 ? r : r * 0.42;
+                const a = (i * Math.PI) / 4;
+                if (i === 0) ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad);
+                else ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+              }
+              ctx.closePath();
+              ctx.fill();
+            } else if (pt.shape === "shard") {
+              ctx.fillStyle = pt.color;
+              ctx.strokeStyle = "#1a1b26";
+              ctx.lineWidth = 1.4;
+              ctx.beginPath();
+              ctx.moveTo(0, -r);
+              ctx.lineTo(r * 0.8, 0);
+              ctx.lineTo(0, r);
+              ctx.lineTo(-r * 0.8, 0);
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+            } else if (pt.shape === "heart") {
+              ctx.fillStyle = pt.color;
+              ctx.beginPath();
+              ctx.arc(-r * 0.38, -r * 0.2, r * 0.48, 0, Math.PI * 2);
+              ctx.arc(r * 0.38, -r * 0.2, r * 0.48, 0, Math.PI * 2);
+              ctx.lineTo(0, r * 0.95);
+              ctx.closePath();
+              ctx.fill();
+            } else if (pt.shape === "note") {
+              ctx.fillStyle = pt.color;
+              ctx.beginPath();
+              ctx.arc(0, r * 0.4, r * 0.5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillRect(r * 0.3, -r * 0.9, r * 0.24, r * 1.3);
+              ctx.fillRect(r * 0.3, -r * 0.9, r * 0.7, r * 0.26);
+            } else {
+              ctx.fillStyle = pt.color;
+              ctx.beginPath();
+              ctx.arc(0, 0, r, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+        }
+
+        _drawPopups(ctx) {
+          for (const pop of this.physics.popups) {
+            const p = this.worldToScreen(pop.x, pop.y);
+            const alpha = clamp(pop.life / pop.maxLife, 0, 1);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.font = "900 18px Trebuchet MS, sans-serif";
+            ctx.textAlign = "center";
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#1a1b26";
+            ctx.strokeText(pop.text, p.x, p.y);
+            ctx.fillStyle = pop.color;
+            ctx.fillText(pop.text, p.x, p.y);
+            ctx.restore();
+          }
+        }
+
+        _drawSnowfall(ctx, intensity) {
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.globalAlpha = intensity * 0.75;
+          for (const sf of this.snowflakes) {
+            const sx = ((sf.x - this.time * 0.08 * sf.spd) % 1 + 1) * this.viewW;
+            const sy = ((sf.y + this.time * sf.spd) % 1) * this.viewH;
+            ctx.beginPath();
+            ctx.arc(sx, sy, sf.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      /* =========================================================
+         6. GAME STATE MANAGER — Loop, UI, Orientation Lock & Controls
+         ========================================================= */
+      class GameStateManager {
+        constructor() {
+          this.canvas = document.getElementById("game-canvas");
+          this.storage = new StorageManager(STORAGE_KEY);
+          this.shop = new ShopManager(this.storage);
+          this.audio = new AudioManager(this.storage);
+          this.physics = new PhysicsEngine(this.shop, this.audio);
+          this.renderer = new Renderer(this.canvas, this.physics);
+
+          this.state = "MENU";
+          this.returnToState = "MENU";
+
+          this.meterPhase = 0;
+          this.angleDeg = 45;
+          this.powerNorm = 0.5;
+          this.kickAnimTimer = 0;
+          this.kickAnimProgress = 0;
+          this.stopDelayTimer = 0;
+
+          this.rafId = null;
+          this.lastTime = 0;
+          this.pausedByOrientation = false;
+          this.eventsBound = false;
+
+          this._cacheDOM();
+          this._bindEvents();
+          this._syncMuteUI();
+          this._refreshMenuStats();
+          this.checkOrientation();
+          this._startLoop();
+        }
+
+        _cacheDOM() {
+          this.el = {
+            hudStats: document.getElementById("hud-stats"),
+            hudDist: document.getElementById("hud-dist"),
+            hudHeight: document.getElementById("hud-height"),
+            hudSpeed: document.getElementById("hud-speed"),
+            hudCoins: document.getElementById("hud-coins"),
+            hudKicksNum: document.getElementById("hud-kicks-num"),
+            hudKicksPips: document.getElementById("hud-kicks-pips"),
+            hudProgress: document.getElementById("hud-progress"),
+            hudBiomeName: document.getElementById("hud-biome-name"),
+            hudProgressFill: document.getElementById("hud-progress-fill"),
+            hudProgressMarker: document.getElementById("hud-progress-marker"),
+            actionBanner: document.getElementById("action-banner"),
+            btnMute: document.getElementById("btn-mute"),
+            muteLabel: document.getElementById("mute-label"),
+            portraitLock: document.getElementById("portrait-lock"),
+
+            menuOverlay: document.getElementById("menu-overlay"),
+            menuBestDist: document.getElementById("menu-best-dist"),
+            menuBestHeight: document.getElementById("menu-best-height"),
+            menuCoins: document.getElementById("menu-coins"),
+            menuRescues: document.getElementById("menu-rescues"),
+            btnPlay: document.getElementById("btn-play"),
+            btnMenuShop: document.getElementById("btn-menu-shop"),
+
+            summaryOverlay: document.getElementById("summary-overlay"),
+            summaryTitle: document.getElementById("summary-title"),
+            summarySub: document.getElementById("summary-sub"),
+            sumDist: document.getElementById("sum-dist"),
+            sumHeight: document.getElementById("sum-height"),
+            sumSpeed: document.getElementById("sum-speed"),
+            sumCoins: document.getElementById("sum-coins"),
+            btnRetry: document.getElementById("btn-retry"),
+            btnOpenShop: document.getElementById("btn-open-shop"),
+            btnToMenu: document.getElementById("btn-to-menu"),
+
+            victoryOverlay: document.getElementById("victory-overlay"),
+            vicDist: document.getElementById("vic-dist"),
+            vicHeight: document.getElementById("vic-height"),
+            vicCoins: document.getElementById("vic-coins"),
+            vicRescues: document.getElementById("vic-rescues"),
+            btnEndless: document.getElementById("btn-endless"),
+            btnVicShop: document.getElementById("btn-vic-shop"),
+            btnVicRetry: document.getElementById("btn-vic-retry"),
+
+            shopOverlay: document.getElementById("shop-overlay"),
+            shopCoinBalance: document.getElementById("shop-coin-balance"),
+            shopGrid: document.getElementById("shop-grid"),
+            btnShopPlay: document.getElementById("btn-shop-play"),
+            btnShopClose: document.getElementById("btn-shop-close")
+          };
+        }
+
+        _bindEvents() {
+          if (this.eventsBound) return;
+          this.eventsBound = true;
+
+          this.canvas.addEventListener("pointerdown", (e) => {
+            if (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse") return;
+            e.preventDefault();
+            this.audio.unlock();
+            if (this.pausedByOrientation) return;
+            this.handlePrimaryAction();
+          }, { passive: false });
+
+          window.addEventListener("keydown", (e) => {
+            if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+              e.preventDefault();
+            }
+            this.audio.unlock();
+
+            if (e.code === "KeyM") {
+              this.audio.toggleMute();
+              this._syncMuteUI();
+              return;
+            }
+
+            if (this.pausedByOrientation) return;
+
+            if (e.code === "ArrowLeft" || e.code === "KeyA") {
+              this.physics.steerDir = -1;
+            } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+              this.physics.steerDir = 1;
+            }
+
+            if (e.repeat) return;
+
+            if (e.code === "Space" || e.code === "Enter" || e.code === "ArrowUp" || e.code === "KeyW") {
+              if (this.state === "MENU") {
+                this.startNewRound();
+              } else if (this.state === "ROUND_END") {
+                this.startNewRound();
+              } else if (this.state === "AIM_ANGLE" || this.state === "AIM_POWER" || this.state === "FLYING") {
+                this.handlePrimaryAction();
+              }
+            } else if (e.code === "KeyR" && (this.state === "ROUND_END" || this.state === "VICTORY")) {
+              this.startNewRound();
+            } else if (e.code === "KeyS" && (this.state === "ROUND_END" || this.state === "MENU" || this.state === "VICTORY")) {
+              this.openShop(this.state);
+            } else if (e.code === "Escape" && this.state === "SHOP") {
+              this.closeShop();
+            }
+          });
+
+          window.addEventListener("keyup", (e) => {
+            if (e.code === "ArrowLeft" || e.code === "KeyA" || e.code === "ArrowRight" || e.code === "KeyD") {
+              this.physics.steerDir = 0;
+            }
+          });
+
+          const bindBtn = (btn, fn) => {
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              btn.blur();
+              this.audio.unlock();
+              fn();
+            });
+          };
+
+          bindBtn(this.el.btnMute, () => {
+            this.audio.toggleMute();
+            this._syncMuteUI();
+          });
+          bindBtn(this.el.btnPlay, () => this.startNewRound());
+          bindBtn(this.el.btnMenuShop, () => this.openShop("MENU"));
+          bindBtn(this.el.btnRetry, () => this.startNewRound());
+          bindBtn(this.el.btnOpenShop, () => this.openShop("ROUND_END"));
+          bindBtn(this.el.btnToMenu, () => this.showMenu());
+          bindBtn(this.el.btnEndless, () => this.continueEndless());
+          bindBtn(this.el.btnVicShop, () => this.openShop("VICTORY"));
+          bindBtn(this.el.btnVicRetry, () => this.startNewRound());
+          bindBtn(this.el.btnShopPlay, () => this.startNewRound());
+          bindBtn(this.el.btnShopClose, () => this.closeShop());
+
+          const onResizeOrRotate = () => {
+            this.renderer.resize();
+            this.checkOrientation();
+          };
+          window.addEventListener("resize", onResizeOrRotate);
+          window.addEventListener("orientationchange", () => setTimeout(onResizeOrRotate, 120));
+
+          document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+              this.audio.setSuspended(true);
+            } else {
+              this.lastTime = performance.now();
+              if (!this.pausedByOrientation) this.audio.setSuspended(false);
+            }
+          });
+        }
+
+        checkOrientation() {
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+          const mustLock = (h > w) && (isTouch || w <= 860);
+
+          if (mustLock !== this.pausedByOrientation) {
+            this.pausedByOrientation = mustLock;
+            this.el.portraitLock.classList.toggle("visible", mustLock);
+            this.audio.setSuspended(mustLock);
+            if (!mustLock) {
+              this.renderer.resize();
+              this.lastTime = performance.now();
+            }
+          }
+        }
+
+        _syncMuteUI() {
+          const muted = this.audio.muted;
+          this.el.btnMute.classList.toggle("muted", muted);
+          this.el.muteLabel.textContent = muted ? "🔇 Silencio" : "🔊 Sonido";
+        }
+
+        _hideAllOverlays() {
+          this.el.menuOverlay.classList.remove("visible");
+          this.el.summaryOverlay.classList.remove("visible");
+          this.el.victoryOverlay.classList.remove("visible");
+          this.el.shopOverlay.classList.remove("visible");
+        }
+
+        _refreshMenuStats() {
+          const d = this.storage.data;
+          this.el.menuBestDist.textContent = `${Math.floor(d.bestDistance)} m`;
+          this.el.menuBestHeight.textContent = `${Math.floor(d.bestHeight)} m`;
+          this.el.menuCoins.textContent = `${d.coins}`;
+          this.el.menuRescues.textContent = `${d.rescues}`;
+        }
+
+        showMenu() {
+          this.state = "MENU";
+          this.physics.resetRound();
+          this._hideAllOverlays();
+          this._refreshMenuStats();
+          this.el.menuOverlay.classList.add("visible");
+          this.el.hudStats.style.visibility = "hidden";
+          this.el.hudProgress.style.display = "none";
+          this.el.actionBanner.style.display = "none";
+        }
+
+        startNewRound() {
+          this.physics.resetRound();
+          this.state = "AIM_ANGLE";
+          this.meterPhase = 0;
+          this.angleDeg = 45;
+          this.powerNorm = 0.5;
+          this.kickAnimTimer = 0;
+          this.kickAnimProgress = 0;
+          this.stopDelayTimer = 0;
+
+          this._hideAllOverlays();
+          this.el.hudStats.style.visibility = "visible";
+          this.el.hudProgress.style.display = "block";
+          this.el.actionBanner.style.display = "block";
+          this.el.actionBanner.textContent = "Toca o pulsa ESPACIO para fijar el ÁNGULO";
+          this._rebuildKickPips();
+          this._updateHUD("PRADERA DE OOO");
+        }
+
+        handlePrimaryAction() {
+          if (this.state === "AIM_ANGLE") {
+            this.audio.playMeterLock(false);
+            this.state = "AIM_POWER";
+            this.meterPhase = 0;
+            this.el.actionBanner.textContent = "¡Ahora toca o pulsa ESPACIO para la POTENCIA de Jake!";
+          } else if (this.state === "AIM_POWER") {
+            this.audio.playMeterLock(true);
+            this.state = "KICK_ANIM";
+            this.kickAnimTimer = 0;
+            this.kickAnimProgress = 0;
+            this.el.actionBanner.style.display = "none";
+          } else if (this.state === "FLYING") {
+            const kicked = this.physics.triggerAirKick();
+            if (kicked) {
+              this._rebuildKickPips();
+            }
+          }
+        }
+
+        _rebuildKickPips() {
+          const max = this.physics.airKicksMax;
+          const left = this.physics.airKicksLeft;
+          this.el.hudKicksNum.textContent = `${left}/${max}`;
+          const container = this.el.hudKicksPips;
+          container.innerHTML = "";
+          const totalPips = Math.max(max, left);
+          for (let i = 0; i < totalPips; i++) {
+            const pip = document.createElement("span");
+            pip.className = "kick-pip" + (i >= left ? " used" : "");
+            container.appendChild(pip);
+          }
+        }
+
+        _updateHUD(biomeName) {
+          const f = this.physics.finn;
+          const dist = Math.max(0, Math.floor(f.x));
+          const height = Math.max(0, Math.floor(f.y - this.physics.finnRadius));
+          const speedKmh = Math.round(Math.hypot(f.vx, f.vy) * 3.6);
+          const totalDisplayCoins = this.storage.data.coins + this.physics.roundCoins;
+
+          this.el.hudDist.textContent = `${dist} m`;
+          this.el.hudHeight.textContent = `${height} m`;
+          this.el.hudSpeed.textContent = `${speedKmh} km/h`;
+          this.el.hudCoins.textContent = `${totalDisplayCoins}`;
+
+          if (this.el.hudKicksNum.textContent !== `${this.physics.airKicksLeft}/${this.physics.airKicksMax}`) {
+            this._rebuildKickPips();
+          }
+
+          const pct = clamp((dist / GOAL_DISTANCE) * 100, 0, 100);
+          this.el.hudProgressFill.style.width = `${pct}%`;
+          this.el.hudProgressMarker.style.left = `${pct}%`;
+          this.el.hudBiomeName.textContent = this.physics.endlessMode
+            ? `${biomeName} — MODO INFINITO`
+            : `${biomeName} (${Math.max(0, GOAL_DISTANCE - dist)} m a Dulce Princesa)`;
+
+          if (this.state === "FLYING") {
+            if (f.rainicornTimer > 0) {
+              this.el.actionBanner.style.display = "block";
+              this.el.actionBanner.textContent = "¡CABALGANDO A ARCOIRIS!";
+            } else if (this.physics.airKicksLeft > 0) {
+              this.el.actionBanner.style.display = "block";
+              this.el.actionBanner.textContent = `Toca o ESPACIO para IMPULSO AÉREO (${this.physics.airKicksLeft} restantes)`;
+            } else {
+              this.el.actionBanner.style.display = "none";
+            }
+          }
+        }
+
+        _commitRoundProgress(bonusCoins) {
+          const dist = Math.max(0, Math.floor(this.physics.finn.x));
+          const maxH = Math.max(0, Math.floor(this.physics.maxHeight));
+          const distanceBonus = Math.floor(dist / 25);
+          const earned = this.physics.roundCoins + distanceBonus + (bonusCoins || 0);
+
+          this.storage.data.coins += earned;
+          if (dist > this.storage.data.bestDistance) this.storage.data.bestDistance = dist;
+          if (maxH > this.storage.data.bestHeight) this.storage.data.bestHeight = maxH;
+          this.storage.save();
+
+          this.physics.roundCoins = 0;
+          return { dist, maxH, earned };
+        }
+
+        _finishRoundSummary() {
+          this.state = "ROUND_END";
+          const res = this._commitRoundProgress(0);
+          const maxKmh = Math.round(this.physics.maxSpeed * 3.6);
+
+          this.el.sumDist.textContent = `${res.dist} m`;
+          this.el.sumHeight.textContent = `${res.maxH} m`;
+          this.el.sumSpeed.textContent = `${maxKmh} km/h`;
+          this.el.sumCoins.textContent = `+${res.earned}`;
+
+          if (res.dist >= GOAL_DISTANCE) {
+            this.el.summaryTitle.textContent = "¡VUELO LEGENDARIO!";
+            this.el.summarySub.textContent = `¡Superaste el Reino Helado con ${res.dist} m!`;
+          } else {
+            const left = Math.max(0, GOAL_DISTANCE - res.dist);
+            this.el.summaryTitle.textContent = "¡FIN DE LA RONDA!";
+            this.el.summarySub.textContent = `Te faltaron ${left} m para rescatar a la Dulce Princesa. ¡Usa la tienda!`;
+          }
+
+          this.el.actionBanner.style.display = "none";
+          this._hideAllOverlays();
+          this.el.summaryOverlay.classList.add("visible");
+        }
+
+        _showVictoryOverlay() {
+          this.state = "VICTORY";
+          this.storage.data.rescues += 1;
+          const res = this._commitRoundProgress(150);
+
+          this.el.vicDist.textContent = `${Math.max(GOAL_DISTANCE, res.dist)} m`;
+          this.el.vicHeight.textContent = `${res.maxH} m`;
+          this.el.vicCoins.textContent = `${this.storage.data.coins}`;
+          this.el.vicRescues.textContent = `${this.storage.data.rescues}`;
+
+          this.el.actionBanner.style.display = "none";
+          this._hideAllOverlays();
+          this.el.victoryOverlay.classList.add("visible");
+        }
+
+        continueEndless() {
+          this._hideAllOverlays();
+          this.state = "FLYING";
+          this.physics.launchEndlessBoost();
+          this._rebuildKickPips();
+        }
+
+        openShop(fromState) {
+          this.returnToState = fromState || "MENU";
+          this.state = "SHOP";
+          this._hideAllOverlays();
+          this._renderShopItems();
+          this.el.shopOverlay.classList.add("visible");
+        }
+
+        closeShop() {
+          this._hideAllOverlays();
+          if (this.returnToState === "ROUND_END") {
+            this.state = "ROUND_END";
+            this.el.summaryOverlay.classList.add("visible");
+          } else if (this.returnToState === "VICTORY") {
+            this.state = "VICTORY";
+            this.el.victoryOverlay.classList.add("visible");
+          } else {
+            this.showMenu();
+          }
+        }
+
+        _renderShopItems() {
+          this.el.shopCoinBalance.textContent = `${this.storage.data.coins}`;
+          const grid = this.el.shopGrid;
+          grid.innerHTML = "";
+
+          for (const item of this.shop.catalog) {
+            const lvl = this.shop.getLevel(item.id);
+            const cost = this.shop.getCost(item);
+            const card = document.createElement("div");
+            card.className = "shop-item";
+
+            let pipsHtml = "";
+            for (let i = 0; i < item.maxLevel; i++) {
+              pipsHtml += `<span class="shop-pip${i < lvl ? " filled" : ""}"></span>`;
+            }
+
+            const btnText = cost === null ? "NIVEL MÁXIMO" : `MEJORAR — 🪙 ${cost}`;
+            const disabled = cost === null || this.storage.data.coins < cost;
+
+            card.innerHTML = `
+              <div>
+                <div class="shop-item-top">
+                  <span class="shop-item-name">${item.name}</span>
+                  <span class="shop-item-lvl">Nv. ${lvl}/${item.maxLevel}</span>
+                </div>
+                <div class="shop-item-desc">${item.desc(lvl)}</div>
+              </div>
+              <div class="shop-pips">${pipsHtml}</div>
+              <button type="button" class="btn btn-green shop-buy-btn" ${disabled ? "disabled" : ""}>${btnText}</button>
+            `;
+
+            const buyBtn = card.querySelector("button");
+            buyBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              buyBtn.blur();
+              this.audio.unlock();
+              if (this.shop.buy(item.id)) {
+                this.audio.playShopBuy();
+                this._renderShopItems();
+                this._refreshMenuStats();
+              }
+            });
+
+            grid.appendChild(card);
+          }
+        }
+
+        _startLoop() {
+          if (this.rafId !== null) return;
+          this.lastTime = performance.now();
+          const tick = (now) => {
+            const rawDt = (now - this.lastTime) / 1000;
+            this.lastTime = now;
+            const dt = Math.min(Math.max(rawDt, 0), 0.05);
+
+            if (!this.pausedByOrientation) {
+              this._step(dt);
+            }
+            this.rafId = window.requestAnimationFrame(tick);
+          };
+          this.rafId = window.requestAnimationFrame(tick);
+        }
+
+        _step(dt) {
+          this.audio.updateBGM(dt, this.state === "FLYING" || this.state === "RESCUE");
+
+          if (this.state === "AIM_ANGLE") {
+            this.meterPhase += dt * 3.1;
+            const wave = (Math.sin(this.meterPhase) + 1) * 0.5;
+            this.angleDeg = lerp(16, 76, wave);
+          } else if (this.state === "AIM_POWER") {
+            this.meterPhase += dt * 4.4;
+            const wave = (Math.sin(this.meterPhase) + 1) * 0.5;
+            this.powerNorm = lerp(0.24, 1.0, wave);
+          } else if (this.state === "KICK_ANIM") {
+            this.kickAnimTimer += dt;
+            const dur = 0.28;
+            this.kickAnimProgress = clamp(this.kickAnimTimer / dur, 0, 1);
+            if (this.kickAnimTimer >= dur * 0.55 && this.physics.finn.vx === 0) {
+              this.physics.launch(this.angleDeg, this.powerNorm);
+            }
+            if (this.kickAnimTimer >= dur) {
+              this.state = "FLYING";
+            }
+          }
+
+          const event = this.physics.update(dt, this.state);
+
+          if (event === "TRIGGER_RESCUE") {
+            this.state = "RESCUE";
+            this.el.actionBanner.style.display = "none";
+          } else if (event === "RESCUE_COMPLETE") {
+            this._showVictoryOverlay();
+          } else if (event === "STOPPED") {
+            this.stopDelayTimer += dt;
+            if (this.stopDelayTimer >= 0.72) {
+              this._finishRoundSummary();
+            }
+          }
+
+          this.renderer.updateCamera(dt, this.state);
+          const biome = this.renderer.render({
+            state: this.state,
+            angleDeg: this.angleDeg,
+            powerNorm: this.powerNorm,
+            kickAnimProgress: this.kickAnimProgress
+          });
+
+          if (this.state === "AIM_ANGLE" || this.state === "AIM_POWER" || this.state === "KICK_ANIM" || this.state === "FLYING" || this.state === "RESCUE") {
+            this._updateHUD(biome.name);
+          }
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        window.__FINN_GAME__ = new GameStateManager();
+      });
+    })();
+  </script>
+</body>
+</html>
